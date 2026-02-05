@@ -18,7 +18,7 @@ RUN npm ci --only=production
 COPY backend/ ./
 
 # Copy frontend for serving static files at root
-COPY frontend/ ../frontend/
+COPY frontend/ ./frontend/
 
 # Create output directory
 RUN mkdir -p output
