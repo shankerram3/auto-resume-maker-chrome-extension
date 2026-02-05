@@ -29,7 +29,6 @@ logs/
 
 # Extension files (not needed in backend)
 extension/
-frontend/
 openrouter-agent/
 
 # Sample files
