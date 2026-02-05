@@ -5,7 +5,7 @@ const path = require('path');
 const resumeRouter = require('./routes/resume');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors({
@@ -37,8 +37,8 @@ app.get('*', (req, res) => {
 
 // Start server - bind to 0.0.0.0 for Docker compatibility
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Resume Generator Backend running on http://localhost:${PORT}`);
-    console.log(`📋 API endpoint: http://localhost:${PORT}/api/generate-resume`);
-    console.log(`🏥 Health check: http://localhost:${PORT}/health`);
-    console.log(`🌐 Frontend: http://localhost:${PORT}`);
+    console.log(`✅ Resume Generator Backend running on port ${PORT}`);
+    console.log(`📋 API endpoint: /api/generate-resume`);
+    console.log(`🏥 Health check: /health`);
+    console.log(`🌐 Frontend: /`);
 });

@@ -23,15 +23,15 @@ COPY frontend/ ./frontend/
 # Create output directory
 RUN mkdir -p output
 
-# Expose port
-EXPOSE 3000
+# Expose port (Railway uses PORT env variable)
+EXPOSE 8080
 
 # Set environment to production
 ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 8080) + '/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start server
 CMD ["node", "server.js"]
