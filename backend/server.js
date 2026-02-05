@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const resumeRouter = require('./routes/resume');
 
 const app = express();
@@ -14,26 +15,24 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' })); // Allow large resume content
 
-// Routes
-app.use('/api', resumeRouter);
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Root endpoint - API information
-app.get('/', (req, res) => {
-    res.json({
-        name: 'Resume Generator API',
-        version: '1.0.0',
-        status: 'running',
-        endpoints: {
-            health: '/health',
-            generateResume: 'POST /api/generate-resume',
-        },
-        documentation: 'https://github.com/shankerram3/auto-resume-maker-chrome-extension',
-    });
-});
+// API Routes
+app.use('/api', resumeRouter);
 
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve frontend for all other routes (SPA fallback)
+app.get('*', (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith('/api') || req.path === '/health') {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 // Start server
@@ -41,4 +40,5 @@ app.listen(PORT, () => {
     console.log(`✅ Resume Generator Backend running on http://localhost:${PORT}`);
     console.log(`📋 API endpoint: http://localhost:${PORT}/api/generate-resume`);
     console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+    console.log(`🌐 Frontend: http://localhost:${PORT}`);
 });
