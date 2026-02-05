@@ -17,6 +17,20 @@ app.use(express.json({ limit: '10mb' })); // Allow large resume content
 // Routes
 app.use('/api', resumeRouter);
 
+// Root endpoint - API information
+app.get('/', (req, res) => {
+    res.json({
+        name: 'Resume Generator API',
+        version: '1.0.0',
+        status: 'running',
+        endpoints: {
+            health: '/health',
+            generateResume: 'POST /api/generate-resume',
+        },
+        documentation: 'https://github.com/shankerram3/auto-resume-maker-chrome-extension',
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
