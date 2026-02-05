@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Resume Generator Settings</h1>
+
+    <section>
+      <label for="backendUrl">Backend URL</label>
+      <input type="text" id="backendUrl" placeholder="http://localhost:3000" autocomplete="off">
+      <p class="hint">Required. Backend server URL for resume generation.</p>
+    </section>
+
+    <section>
+      <label for="masterResume">Master Resume</label>
+      <div class="file-upload-container" style="margin-bottom: 10px;">
+        <input type="file" id="resumeUpload" accept=".pdf,.tex,.txt" class="form-control">
+        <p class="hint" style="margin-top: 5px;">Upload a PDF or LaTeX/.txt file to populate the box below.</p>
+      </div>
+      <textarea id="masterResume" rows="16"
+        placeholder="Paste your master resume in LaTeX format. Leave empty to use the default."></textarea>
+      <p class="hint">Optional. Leave empty to use the bundled default resume.</p>
+      <button id="btnUseDefault" class="btn btn-secondary">Use Default Resume</button>
+    </section>
+
+    <div class="actions">
+      <button id="btnSave" class="btn btn-primary">Save</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </div>
+  <script src="../lib/pdf.min.js"></script>
+  <script src="../lib/master-resume.js"></script>
+  <script src="options.js"></script>
+</body>
+
+</html>

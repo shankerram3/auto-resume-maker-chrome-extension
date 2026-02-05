@@ -1,0 +1,182 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[margin=0.55in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{fontawesome5}
+\usepackage{xcolor}
+\usepackage{parskip}
+
+% Colors
+\definecolor{linkblue}{HTML}{0066CC}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=linkblue,
+    urlcolor=linkblue,
+    pdfborder={0 0 0}
+}
+
+% Section formatting
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{10pt}{6pt}
+
+% List formatting
+\setlist[itemize]{nosep, leftmargin=1.5em, label=\textbullet}
+
+% Remove page numbers
+\pagestyle{empty}
+
+\begin{document}
+
+%====================
+% HEADER
+%====================
+\begin{center}
+    {\LARGE\textbf{Ram Harikrishnan}}\\[4pt]
+    Tempe, AZ \quad $|$ \quad (602) 218-2159 \quad $|$ \quad 
+    \href{mailto:ramsankarharikrishnan@gmail.com}{ramsankarharikrishnan@gmail.com}\\[2pt]
+    \href{https://linkedin.com/in/ram-harikrishnan}{LinkedIn} \quad $|$ \quad 
+    \href{https://github.com/ram-harikrishnan}{GitHub} \quad $|$ \quad 
+    Open to Relocate
+\end{center}
+
+%====================
+% SUMMARY
+%====================
+\section{Summary}
+Full-Stack Software Engineer with 4+ years of experience building production web applications using React, Vue.js, and Angular on the frontend with Python (FastAPI, Flask) backends. Strong foundation in REST API design, SQL databases, and modern UI frameworks. MS in Computer Engineering from Arizona State University.
+
+%====================
+% SKILLS
+%====================
+\section{Technical Skills}
+\textbf{Frontend:} React, Vue.js, Angular, JavaScript, TypeScript, HTML5, CSS3, Tailwind CSS, Bootstrap, Material UI\\[2pt]
+\textbf{Backend:} Python, FastAPI, Flask, Django, Node.js, Express, REST APIs, GraphQL, WebSockets\\[2pt]
+\textbf{Databases:} PostgreSQL, MySQL, SQLite, MongoDB, Redis, Database Design, SQL Query Optimization\\[2pt]
+\textbf{Cloud \& DevOps:} AWS (EC2, S3, Lambda), Azure (App Services), Docker, GitHub Actions, Jenkins, CI/CD\\[2pt]
+\textbf{Tools:} Git, Postman, Swagger/OpenAPI, Jira, Figma
+
+%====================
+% PROFESSIONAL EXPERIENCE
+%====================
+\section{Professional Experience}
+
+\textbf{Software Engineer} \hfill May 2024 -- Dec 2025\\
+\textit{Arizona Water Innovation} \hfill \textit{Tempe, AZ}
+\begin{itemize}
+    \item Built FastAPI backend with async endpoints, Pydantic request/response validation, and structured JSON error handling for low-latency API serving
+    \item Developed production React frontend with reusable component architecture, React Router for client-side navigation, and responsive CSS Grid/Flexbox layouts
+    \item Designed and implemented REST API integration layer connecting React UI to Python backend via streaming responses, loading states, and error boundaries
+    \item Configured PostgreSQL database schemas with optimized SQL queries for document indexing and retrieval operations
+    \item Deployed full-stack application on Azure App Services and AWS EC2, configuring Docker containers and environment management for production runtime
+    \item Implemented CI/CD pipelines using GitHub Actions for automated testing, build validation, and deployment workflows across staging and production
+    \item Built headless CMS integration enabling non-technical stakeholders to manage content, reducing engineering overhead for resource updates
+    \item Implemented lazy loading, code splitting, and asset optimization improving Core Web Vitals and page load performance
+    \item Delivered cross-platform mobile companion using React Native with Axios HTTP client and JWT authentication for secure API communication
+    \item Reduced environment-specific runtime issues by 40\% through containerized deployment strategies and infrastructure-as-code practices
+\end{itemize}
+
+\vspace{6pt}
+
+\textbf{Software Engineer} \hfill May 2022 -- Oct 2023\\
+\textit{PIT Solutions} \hfill \textit{Zurich, Switzerland}
+
+\vspace{4pt}
+\textit{Client: ContractPodAI, London}
+\begin{itemize}
+    \item Migrated legacy .NET MVC application to a modern Vue.js single-page application, improving maintainability through reusable components and client-side routing
+    \item Refactored UI modules into shared Vue components with centralized state management, reducing duplicate UI logic across screens by 30\%
+    \item Optimized page navigation and API-driven rendering, cutting perceived load time by 25\% for high-traffic user flows
+    \item Implemented comprehensive form validation and error-handling patterns across features, decreasing UI-related defects post-release by 20\%
+    \item Collaborated with backend team to optimize REST API response structures for efficient frontend data consumption
+\end{itemize}
+
+\vspace{4pt}
+\textit{Client: Balu Properties Rental Company, Zurich}
+\begin{itemize}
+    \item Built hybrid Angular Ionic web application for property rental management, supporting core workflows with shared UI components across platforms
+    \item Designed reusable UI components for booking and account management flows, accelerating new screen delivery by 30\%
+    \item Implemented centralized error handling and API retry logic, reducing user drop-offs from failed requests by 15\%
+    \item Built responsive layouts with accessibility-friendly UI patterns using CSS Grid and Flexbox for consistent cross-device experience
+\end{itemize}
+
+\vspace{4pt}
+\textit{Client: Swiss Volleyball Federation, Zurich}
+\begin{itemize}
+    \item Delivered cross-platform application with secure authentication and role-based access control supporting 3+ user roles
+    \item Built offline-first caching layer for critical views and assets, reducing failed sessions in low-connectivity scenarios by 35\%
+    \item Automated release builds and QA validation workflows, reducing manual release effort by 40\%
+\end{itemize}
+
+\newpage
+
+\textbf{Co-Founder \& Software Engineer} \hfill Nov 2020 -- May 2022\\
+\textit{MakerLabs Edutech} \hfill \textit{Kochi, India}
+\begin{itemize}
+    \item Built cross-platform desktop application using Electron.js, Node.js, and React, delivering unified interface across Windows, macOS, and Linux
+    \item Developed reusable React UI components with Redux state management for device configuration flows including profile management and settings wizards
+    \item Implemented real-time device communication using WebSockets and REST API workflows, reducing command latency by 20\%
+    \item Designed Flask-based backend API with structured request/response handling and comprehensive error management
+    \item Hardened API integrations through OpenAPI-versioned contracts, Docker containerization, and rollback-friendly deployment patterns
+    \item Automated build and release workflows using GitHub Actions with gated quality checks and unit testing, reducing release cycle time by 40\%
+    \item Deployed production systems serving 50+ school clients with consistent uptime and performance
+\end{itemize}
+
+%====================
+% PROJECTS
+%====================
+\section{Projects}
+
+\textbf{NomadSync: Collaborative Travel Planning Platform}
+\begin{itemize}
+    \item Developed full-stack web application using TypeScript, React, and Tailwind CSS with Google Maps Platform integration for route visualization
+    \item Built real-time collaboration features with WebSocket synchronization and Redux Toolkit state management for shared budget tracking
+    \item Implemented REST API backend with request validation, structured error responses, and PostgreSQL database for persistent storage
+\end{itemize}
+
+\vspace{4pt}
+
+\textbf{MakerBOT: Educational Platform Backend}
+\begin{itemize}
+    \item Designed and developed Flask-based backend API with structured request/response handling and comprehensive validation
+    \item Integrated vector database for efficient content retrieval, reducing end-to-end response latency by 35\%
+    \item Deployed with AWS CI/CD pipelines including automated testing, build validation, and staged rollouts
+\end{itemize}
+
+\vspace{4pt}
+
+\textbf{Startup Intelligence Platform}
+\begin{itemize}
+    \item Architected Python backend using FastAPI for data extraction and semantic search across 1000+ articles
+    \item Implemented Neo4j graph database with Cypher query interface for complex relationship traversals
+    \item Built REST API endpoints with Pydantic validation and structured JSON responses for frontend consumption
+\end{itemize}
+
+%====================
+% EDUCATION
+%====================
+\section{Education}
+
+\textbf{Arizona State University} \hfill Tempe, AZ\\
+\textit{Master of Science in Computer Engineering (Computer Systems)} \hfill Dec 2025\\
+GPA: 3.27/4.0
+
+\vspace{6pt}
+
+\textbf{Ponnaiyah Ramajayam Institute of Science \& Technology (PRIST)} \hfill India\\
+\textit{Bachelor of Technology in Electronics and Communications} \hfill Mar 2022
+
+%====================
+% ADDITIONAL
+%====================
+\section{Additional}
+\begin{itemize}
+    \item \textbf{Open Source:} Contributor to Meta PyTorch OpenEnv -- developed simulation environments and enhanced documentation
+    \item \textbf{Recognition:} 1st Place -- Meta AI / AMD / PyTorch Hackathon (2025)
+\end{itemize}
+
+\end{document}

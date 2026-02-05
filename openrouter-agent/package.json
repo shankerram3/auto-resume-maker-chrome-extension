@@ -1,0 +1,28 @@
+{
+  "name": "openrouter-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx src/cli.tsx",
+    "start:headless": "tsx src/headless.ts",
+    "dev": "tsx watch src/cli.tsx",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@openrouter/sdk": "^0.5.1",
+    "@types/react": "^19.2.11",
+    "eventemitter3": "^5.0.4",
+    "ink": "^6.6.0",
+    "install": "^0.13.0",
+    "npm": "^11.9.0",
+    "react": "^19.2.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "zod": "^4.3.6"
+  }
+}

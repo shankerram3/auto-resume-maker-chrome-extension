@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Resume Generator</h1>
+    <p class="subtitle">Generate ATS-optimized resumes tailored to any job</p>
+
+    <div id="status" class="status hidden"></div>
+
+    <div class="actions">
+      <button id="btnExtract" class="btn btn-primary">Extract from LinkedIn Page</button>
+      <button id="btnLoadFile" class="btn btn-secondary">Load from HTML File</button>
+      <input type="file" id="fileInput" accept=".html,.htm" style="display:none">
+    </div>
+
+    <div id="manualSection" class="manual-section hidden">
+      <label for="jobDescInput">Or paste job description:</label>
+      <textarea id="jobDescInput" rows="6" placeholder="Paste the job description here..."></textarea>
+    </div>
+
+    <div class="generate-row">
+      <button id="btnGenerate" class="btn btn-generate" disabled>Generate Resume (PDF)</button>
+    </div>
+
+    <a href="#" id="optionsLink" target="_blank" class="options-link">Settings (API key, Master resume)</a>
+  </div>
+  <script src="../lib/job-extractor.js"></script>
+  <script src="../lib/master-resume.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

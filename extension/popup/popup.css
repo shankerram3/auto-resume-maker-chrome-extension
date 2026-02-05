@@ -1,0 +1,151 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 380px;
+  min-height: 280px;
+  margin: 0;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 12px;
+}
+
+.status {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.status.hidden {
+  display: none;
+}
+
+.status.info {
+  background: #e8f4fd;
+  color: #0c5a9e;
+  border: 1px solid #b8daff;
+}
+
+.status.error {
+  background: #fde8e8;
+  color: #9e0c0c;
+  border: 1px solid #ffb8b8;
+}
+
+.status.success {
+  background: #e8fde8;
+  color: #0c9e0c;
+  border: 1px solid #b8ffb8;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #0a66c2;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #004182;
+}
+
+.btn-secondary {
+  background: #f3f6f8;
+  color: #1a1a1a;
+  border: 1px solid #cfd9de;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e8eef2;
+}
+
+.btn-generate {
+  width: 100%;
+  padding: 12px;
+  background: #057642;
+  color: white;
+  font-size: 15px;
+}
+
+.btn-generate:hover:not(:disabled) {
+  background: #045a34;
+}
+
+.manual-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-section.hidden {
+  display: none;
+}
+
+.manual-section label {
+  font-size: 12px;
+  color: #666;
+}
+
+.manual-section textarea {
+  padding: 10px;
+  border: 1px solid #cfd9de;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.generate-row {
+  margin-top: 4px;
+}
+
+.options-link {
+  font-size: 12px;
+  color: #0a66c2;
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.options-link:hover {
+  text-decoration: underline;
+}

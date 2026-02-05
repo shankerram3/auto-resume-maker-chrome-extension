@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Generator",
+  "version": "1.0.0",
+  "description": "Extract job descriptions, generate ATS-optimized LaTeX resumes via LLM, and download as PDF",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://*.linkedin.com/*",
+    "https://latexonline.cc/*",
+    "https://api.anthropic.com/*",
+    "http://localhost:*/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "options_page": "options/options.html",
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/jobs/*"
+      ],
+      "js": [
+        "lib/job-extractor.js",
+        "content/content.js"
+      ]
+    }
+  ]
+}
