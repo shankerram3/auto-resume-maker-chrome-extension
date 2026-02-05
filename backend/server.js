@@ -35,8 +35,8 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend/index.html'));
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server - bind to 0.0.0.0 for Docker compatibility
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Resume Generator Backend running on http://localhost:${PORT}`);
     console.log(`📋 API endpoint: http://localhost:${PORT}/api/generate-resume`);
     console.log(`🏥 Health check: http://localhost:${PORT}/health`);
