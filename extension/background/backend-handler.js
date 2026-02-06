@@ -1,7 +1,7 @@
 /**
  * Handle resume generation via backend API
  */
-async function handleGenerateResumeViaBackend(backendUrl, jobDescription, masterResume) {
+async function handleGenerateResumeViaBackend(backendUrl, jobDescription, masterResume, downloadOptions = {}) {
     try {
         const response = await fetch(`${backendUrl}/api/generate-resume`, {
             method: 'POST',
@@ -35,12 +35,17 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
                 reader.readAsDataURL(blob);
             });
 
+            const filenameBase = 'job-tailored-resume.pdf';
+            const safeSubfolder = (downloadOptions.subfolder || '').replace(/^[\\/]+|[\\/]+$/g, '');
+            const filename = safeSubfolder ? `${safeSubfolder}/${filenameBase}` : filenameBase;
+            const saveAs = downloadOptions.saveAs !== false;
+
             const downloadId = await new Promise((resolve, reject) => {
                 chrome.downloads.download(
                     {
                         url: dataUrl,
-                        filename: 'job-tailored-resume.pdf',
-                        saveAs: true,
+                        filename,
+                        saveAs,
                     },
                     (id) => (chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(id))
                 );

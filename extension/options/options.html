@@ -12,8 +12,21 @@
 
     <section>
       <label for="backendUrl">Backend URL</label>
-      <input type="text" id="backendUrl" placeholder="http://localhost:3000" autocomplete="off">
+      <input type="text" id="backendUrl" placeholder="https://resume-generator-backend-production-42f6.up.railway.app" autocomplete="off">
       <p class="hint">Required. Backend server URL for resume generation.</p>
+    </section>
+
+    <section>
+      <label for="downloadSaveAs">Download Location</label>
+      <div style="margin: 6px 0 10px;">
+        <label style="display:flex; gap:8px; align-items:center;">
+          <input type="checkbox" id="downloadSaveAs">
+          Ask where to save each resume (recommended)
+        </label>
+      </div>
+      <label for="downloadSubfolder">Downloads subfolder (optional)</label>
+      <input type="text" id="downloadSubfolder" placeholder="AutoResumes" autocomplete="off">
+      <p class="hint">If set, resumes are saved under your Downloads folder in this subfolder.</p>
     </section>
 
     <section>

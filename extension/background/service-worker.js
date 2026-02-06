@@ -87,9 +87,11 @@ function extractLatexFromResponse(text) {
 
 async function getSettings() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['backendUrl'], (result) => {
+    chrome.storage.local.get(['backendUrl', 'downloadSaveAs', 'downloadSubfolder'], (result) => {
       resolve({
-        backendUrl: result.backendUrl || ''
+        backendUrl: result.backendUrl || '',
+        downloadSaveAs: result.downloadSaveAs !== false,
+        downloadSubfolder: result.downloadSubfolder || ''
       });
     });
   });
@@ -126,5 +128,13 @@ async function handleGenerateResume(jobDescription, masterResume) {
     };
   }
 
-  return await handleGenerateResumeViaBackend(settings.backendUrl, jobDescription, masterResume);
+  return await handleGenerateResumeViaBackend(
+    settings.backendUrl,
+    jobDescription,
+    masterResume,
+    {
+      saveAs: settings.downloadSaveAs,
+      subfolder: settings.downloadSubfolder
+    }
+  );
 }
