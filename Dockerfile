@@ -1,9 +1,9 @@
 # Use Node.js LTS version
 FROM node:20-alpine
 
-# Install pdflatex for local LaTeX compilation (optional but recommended)
-# Uncomment if you want local LaTeX support
-# RUN apk add --no-cache texlive-full
+# Install pdflatex and common LaTeX packages for reliable compilation
+# Note: texlive-full is large but avoids missing-package errors.
+RUN apk add --no-cache texlive-full
 
 # Set working directory
 WORKDIR /app
