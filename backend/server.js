@@ -27,7 +27,7 @@ app.get('/health', (req, res) => {
 });
 
 // Serve frontend for all other routes (SPA fallback)
-app.get('/*', (req, res) => {
+app.use((req, res) => {
     // Don't serve index.html for API routes
     if (req.path.startsWith('/api') || req.path === '/health') {
         return res.status(404).json({ error: 'Not found' });
