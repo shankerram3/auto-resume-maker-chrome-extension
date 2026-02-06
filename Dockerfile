@@ -28,6 +28,8 @@ EXPOSE 8080
 
 # Set environment to production
 ENV NODE_ENV=production
+# Railway will set PORT, but default to 8080 inside the container
+ENV PORT=8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
