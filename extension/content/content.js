@@ -219,7 +219,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   function startProgressStream(backendUrl, requestId) {
-    const url = `${backendUrl.replace(/\\/+$/, '')}/api/progress/${encodeURIComponent(requestId)}`;
+    const url = `${backendUrl.replace(/\/+$/, '')}/api/progress/${encodeURIComponent(requestId)}`;
     const source = new EventSource(url);
     source.addEventListener('progress', (evt) => {
       try {
