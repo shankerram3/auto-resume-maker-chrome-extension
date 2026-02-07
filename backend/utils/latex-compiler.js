@@ -58,9 +58,10 @@ async function compileLatexLocally(latexSource) {
         await fs.writeFile(texPath, latexSource, 'utf8');
         console.log(`  → Compiling locally with ${engine}...`);
 
-        await execFileAsync(engine, ['-interaction=nonstopmode', '-halt-on-error', 'main.tex'], {
+        await execFileAsync(engine, ['-interaction=nonstopmode', '-halt-on-error', '-file-line-error', 'main.tex'], {
             cwd: tmpDir,
             timeout: 30000,
+            maxBuffer: 10 * 1024 * 1024,
         });
 
         const pdfBuffer = await fs.readFile(pdfPath);
@@ -68,10 +69,22 @@ async function compileLatexLocally(latexSource) {
         return pdfBuffer;
     } catch (err) {
         const msg = err?.message || String(err);
+        let logSnippet = '';
+        try {
+            const logText = await fs.readFile(path.join(tmpDir, 'main.log'), 'utf8');
+            const lines = logText.trim().split(/\r?\n/);
+            logSnippet = lines.slice(-40).join('\n');
+        } catch (_) { }
+
+        if (logSnippet) {
+            console.error('  LaTeX log tail:\n' + logSnippet);
+        }
+
         if (err && err.code === 'ENOENT') {
             throw new Error(`Local LaTeX compilation failed: ${engine} not found. Install a TeX distribution or set LATEX_COMPILER=remote.`);
         }
-        throw new Error(`Local LaTeX compilation failed: ${msg}`);
+        const details = logSnippet ? `\nLaTeX log tail:\n${logSnippet}` : '';
+        throw new Error(`Local LaTeX compilation failed: ${msg}${details}`);
     } finally {
         try {
             await fs.rm(tmpDir, { recursive: true, force: true });
