@@ -6,6 +6,76 @@ const { RESUME_SYSTEM_PROMPT } = require('../config/prompt');
 const { compileLatexToPDF, extractLatexFromResponse, getPdfPageCount } = require('../utils/latex-compiler');
 
 const router = express.Router();
+const progressClients = new Map();
+const progressLast = new Map();
+const stageAverages = {
+    llm: 60,
+    refine: 20,
+    compile: 8,
+};
+
+function updateAverage(stage, durationSeconds) {
+    if (!durationSeconds || durationSeconds <= 0 || !Number.isFinite(durationSeconds)) return;
+    const prev = stageAverages[stage] || durationSeconds;
+    stageAverages[stage] = Math.round(prev * 0.7 + durationSeconds * 0.3);
+}
+
+function estimateRemaining(stages) {
+    return Math.max(
+        0,
+        Math.round(stages.reduce((sum, stage) => sum + (stageAverages[stage] || 0), 0))
+    );
+}
+
+function sendProgress(requestId, payload) {
+    if (!requestId) return;
+    const data = {
+        timestamp: new Date().toISOString(),
+        ...payload,
+    };
+    progressLast.set(requestId, data);
+    const client = progressClients.get(requestId);
+    if (client) {
+        client.res.write(`event: progress\ndata: ${JSON.stringify(data)}\n\n`);
+    }
+}
+
+function closeProgress(requestId) {
+    if (!requestId) return;
+    const client = progressClients.get(requestId);
+    if (client) {
+        clearInterval(client.keepAlive);
+        client.res.end();
+        progressClients.delete(requestId);
+    }
+    setTimeout(() => progressLast.delete(requestId), 300000);
+}
+
+router.get('/progress/:id', (req, res) => {
+    const { id } = req.params;
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.flushHeaders?.();
+
+    const keepAlive = setInterval(() => {
+        res.write('event: ping\ndata: {}\n\n');
+    }, 15000);
+
+    progressClients.set(id, { res, keepAlive });
+    const last = progressLast.get(id);
+    if (last) {
+        res.write(`event: progress\ndata: ${JSON.stringify(last)}\n\n`);
+    } else {
+        res.write(`event: progress\ndata: ${JSON.stringify({ stage: 'connected', percent: 0 })}\n\n`);
+    }
+
+    req.on('close', () => {
+        clearInterval(keepAlive);
+        progressClients.delete(id);
+    });
+});
 
 /**
  * POST /api/generate-resume
@@ -14,12 +84,25 @@ const router = express.Router();
 router.post('/generate-resume', async (req, res) => {
     console.log('📥 Received resume generation request');
     try {
+        const requestId = req.get('x-request-id') || req.body?.requestId || null;
         const { jobDescription, masterResume } = req.body;
         console.log('📝 Job description length:', jobDescription?.length || 0);
         console.log('📄 Master resume length:', masterResume?.length || 0);
+        const startedAt = Date.now();
+        sendProgress(requestId, {
+            stage: 'received',
+            percent: 5,
+            message: 'Request received',
+            etaSeconds: estimateRemaining(['llm', 'compile']),
+        });
 
         // Validation
         if (!jobDescription || jobDescription.trim().length < 50) {
+            sendProgress(requestId, {
+                stage: 'error',
+                percent: 100,
+                message: 'Job description is too short or missing.',
+            });
             return res.status(400).json({
                 success: false,
                 error: 'Job description is too short or missing.',
@@ -27,6 +110,11 @@ router.post('/generate-resume', async (req, res) => {
         }
 
         if (!masterResume || masterResume.trim().length < 100) {
+            sendProgress(requestId, {
+                stage: 'error',
+                percent: 100,
+                message: 'Master resume is missing or too short.',
+            });
             return res.status(400).json({
                 success: false,
                 error: 'Master resume is missing or too short.',
@@ -36,6 +124,11 @@ router.post('/generate-resume', async (req, res) => {
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) {
             console.error('❌ Anthropic API key not configured');
+            sendProgress(requestId, {
+                stage: 'error',
+                percent: 100,
+                message: 'Anthropic API key not configured.',
+            });
             return res.status(500).json({
                 success: false,
                 error: 'Anthropic API key not configured on server.',
@@ -45,6 +138,12 @@ router.post('/generate-resume', async (req, res) => {
 
         // Call Anthropic API
         console.log('🤖 Calling Anthropic API...');
+        sendProgress(requestId, {
+            stage: 'llm_start',
+            percent: 15,
+            message: 'Calling AI model...',
+            etaSeconds: estimateRemaining(['llm', 'compile']),
+        });
         const userMessage = `### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME:\n${masterResume}`;
         const requestStart = Date.now();
         const controller = new AbortController();
@@ -76,8 +175,20 @@ router.post('/generate-resume', async (req, res) => {
             });
             const elapsed = Math.round((Date.now() - requestStart) / 1000);
             console.log(`✅ Anthropic responded in ${elapsed}s (status ${llmResponse.status})`);
+            updateAverage('llm', elapsed);
+            sendProgress(requestId, {
+                stage: 'llm_done',
+                percent: 60,
+                message: 'AI response received',
+                etaSeconds: estimateRemaining(['compile']),
+            });
         } catch (err) {
             if (err && err.name === 'AbortError') {
+                sendProgress(requestId, {
+                    stage: 'error',
+                    percent: 100,
+                    message: `Anthropic API timed out after ${Math.round(timeoutMs / 1000)}s.`,
+                });
                 return res.status(504).json({
                     success: false,
                     error: `Anthropic API timed out after ${Math.round(timeoutMs / 1000)}s.`,
@@ -109,6 +220,11 @@ router.post('/generate-resume', async (req, res) => {
         console.log('📄 LaTeX extracted:', latex ? 'Yes' : 'No');
 
         if (!latex) {
+            sendProgress(requestId, {
+                stage: 'error',
+                percent: 100,
+                message: 'LLM did not return valid LaTeX.',
+            });
             return res.status(500).json({
                 success: false,
                 error: 'LLM did not return valid LaTeX.',
@@ -118,8 +234,14 @@ router.post('/generate-resume', async (req, res) => {
 
         // Compile LaTeX to PDF with 2-page guard
         console.log('🔨 Compiling LaTeX to PDF...');
+        sendProgress(requestId, {
+            stage: 'compile_start',
+            percent: 75,
+            message: 'Compiling LaTeX to PDF...',
+            etaSeconds: estimateRemaining(['compile']),
+        });
         try {
-            const { pdfBuffer, finalLatex, pageCount } = await compileWithTwoPageGuard(latex, apiKey);
+            const { pdfBuffer, finalLatex, pageCount } = await compileWithTwoPageGuard(latex, apiKey, requestId);
             console.log(`✅ PDF compiled successfully (${pageCount} pages), size:`, pdfBuffer.length, 'bytes');
 
             // Save a copy to backend/output
@@ -129,6 +251,14 @@ router.post('/generate-resume', async (req, res) => {
             const outputPath = path.join(outputDir, `resume-${timestamp}.pdf`);
             await fs.writeFile(outputPath, pdfBuffer);
             console.log('💾 Saved PDF to:', outputPath);
+            const totalElapsed = Math.round((Date.now() - startedAt) / 1000);
+            sendProgress(requestId, {
+                stage: 'done',
+                percent: 100,
+                message: `Resume ready (took ${totalElapsed}s)`,
+                etaSeconds: 0,
+            });
+            closeProgress(requestId);
 
             // Send PDF as response
             res.setHeader('Content-Type', 'application/pdf');
@@ -137,6 +267,12 @@ router.post('/generate-resume', async (req, res) => {
         } catch (compilationError) {
             // If compilation fails, return LaTeX source
             console.warn('⚠️  LaTeX compilation failed:', compilationError.message);
+            sendProgress(requestId, {
+                stage: 'error',
+                percent: 100,
+                message: 'LaTeX compilation failed. Returning source code.',
+            });
+            closeProgress(requestId);
             return res.status(200).json({
                 success: true,
                 latex,
@@ -147,6 +283,13 @@ router.post('/generate-resume', async (req, res) => {
     } catch (error) {
         console.error('❌ Error in /generate-resume:', error);
         console.error('Stack trace:', error.stack);
+        const requestId = req.get('x-request-id') || req.body?.requestId || null;
+        sendProgress(requestId, {
+            stage: 'error',
+            percent: 100,
+            message: error.message || 'Internal server error',
+        });
+        closeProgress(requestId);
         res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
@@ -156,12 +299,20 @@ router.post('/generate-resume', async (req, res) => {
 
 module.exports = router;
 
-async function compileWithTwoPageGuard(initialLatex, apiKey) {
+async function compileWithTwoPageGuard(initialLatex, apiKey, requestId) {
     let latex = initialLatex;
     const maxAttempts = 2;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        sendProgress(requestId, {
+            stage: 'compile_pass',
+            percent: 75,
+            message: `Compiling PDF (pass ${attempt}/${maxAttempts})...`,
+            etaSeconds: estimateRemaining(['compile']),
+        });
+        const compileStart = Date.now();
         const pdfBuffer = await compileLatexToPDF(latex);
+        updateAverage('compile', Math.round((Date.now() - compileStart) / 1000));
         const pageCount = await getPdfPageCount(pdfBuffer);
         console.log(`📄 PDF page count: ${pageCount}`);
 
@@ -174,7 +325,21 @@ async function compileWithTwoPageGuard(initialLatex, apiKey) {
         }
 
         console.log('✂️  Compressing LaTeX to fit 2 pages without losing quality...');
+        sendProgress(requestId, {
+            stage: 'refine_start',
+            percent: 65,
+            message: 'Compressing content to fit 2 pages...',
+            etaSeconds: estimateRemaining(['refine', 'compile']),
+        });
+        const refineStart = Date.now();
         latex = await refineLatexToTwoPages(latex, apiKey);
+        updateAverage('refine', Math.round((Date.now() - refineStart) / 1000));
+        sendProgress(requestId, {
+            stage: 'refine_done',
+            percent: 70,
+            message: 'Compression complete. Recompiling...',
+            etaSeconds: estimateRemaining(['compile']),
+        });
     }
 
     throw new Error('Unexpected error while enforcing 2-page limit.');

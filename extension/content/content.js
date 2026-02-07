@@ -20,6 +20,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 // Inject an inline "Generate Resume" button next to the "About the Job" heading on LinkedIn job pages.
 (function injectResumeButton() {
   'use strict';
+  let progressSource = null;
+  let progressRequestId = null;
 
   function isLinkedInJobPage() {
     return location.hostname.includes('linkedin.com') && location.pathname.includes('/jobs');
@@ -87,6 +89,59 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   border-color: #065f46;
   color: #a7f3d0;
 }
+#resume-gen-progress {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 99999;
+  width: 320px;
+  background: #0b0f19;
+  color: #e5e7eb;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: 500 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  display: none;
+}
+#resume-gen-progress.show {
+  display: block;
+}
+#resume-gen-progress .title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+#resume-gen-progress .bar {
+  width: 100%;
+  height: 6px;
+  background: #111827;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+#resume-gen-progress .bar-fill {
+  height: 100%;
+  width: 0%;
+  background: #22c55e;
+  transition: width 0.25s ease;
+}
+#resume-gen-progress .meta {
+  color: #cbd5f5;
+}
+#resume-gen-progress .actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+#resume-gen-progress .actions button {
+  background: #111827;
+  color: #e5e7eb;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 11px;
+}
 `;
     document.head.appendChild(style);
   }
@@ -102,6 +157,65 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     toast.className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  function ensureProgressPanel() {
+    if (document.getElementById('resume-gen-progress')) return;
+    const panel = document.createElement('div');
+    panel.id = 'resume-gen-progress';
+    panel.innerHTML = `
+      <div class="title">Generating resume…</div>
+      <div class="bar"><div class="bar-fill"></div></div>
+      <div class="meta">Starting…</div>
+      <div class="actions">
+        <button id="resume-gen-hide">Hide</button>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    panel.querySelector('#resume-gen-hide')?.addEventListener('click', () => {
+      panel.classList.remove('show');
+    });
+  }
+
+  function showProgressPanel() {
+    const panel = document.getElementById('resume-gen-progress');
+    if (panel) panel.classList.add('show');
+  }
+
+  function updateProgressPanel(percent, message) {
+    const panel = document.getElementById('resume-gen-progress');
+    if (!panel) return;
+    const fill = panel.querySelector('.bar-fill');
+    const meta = panel.querySelector('.meta');
+    if (fill) fill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    if (meta) meta.textContent = message || 'Working...';
+  }
+
+  async function getBackendUrl() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['backendUrl'], (result) => {
+        resolve(result.backendUrl || '');
+      });
+    });
+  }
+
+  function startProgressStream(backendUrl, requestId) {
+    const url = `${backendUrl.replace(/\\/+$/, '')}/api/progress/${encodeURIComponent(requestId)}`;
+    const source = new EventSource(url);
+    source.addEventListener('progress', (evt) => {
+      try {
+        const data = JSON.parse(evt.data);
+        const eta = typeof data.etaSeconds === 'number' ? ` • ETA ~${data.etaSeconds}s` : '';
+        const msg = data.message ? `${data.message}${eta}` : 'Working...';
+        updateProgressPanel(data.percent ?? 0, msg);
+      } catch (_) {
+        updateProgressPanel(10, 'Working...');
+      }
+    });
+    source.onerror = () => {
+      updateProgressPanel(10, 'Waiting for updates...');
+    };
+    return source;
   }
 
   function extractAboutJob() {
@@ -142,7 +256,26 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return;
     }
 
-    showToast('🤖 Generating resume with Claude...', 'info');
+    const backendUrl = await getBackendUrl();
+    if (!backendUrl) {
+      showToast('❌ Backend URL not configured. Set it in Options.', 'error');
+      return;
+    }
+
+    showToast('🤖 Generating resume...', 'info');
+    ensureProgressPanel();
+    showProgressPanel();
+    updateProgressPanel(5, 'Starting...');
+
+    progressRequestId = (globalThis.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    if (progressSource) {
+      progressSource.close();
+      progressSource = null;
+    }
+    progressSource = startProgressStream(backendUrl, progressRequestId);
 
     // Send to background script for processing
     chrome.runtime.sendMessage(
@@ -150,13 +283,20 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         action: 'generateResume',
         jobDescription,
         masterResume,
+        requestId: progressRequestId,
       },
       (response) => {
         if (response && response.success) {
+          updateProgressPanel(100, 'Download started.');
           showToast('✅ Resume generated successfully!', 'success');
         } else {
           const error = response?.error || 'Unknown error';
+          updateProgressPanel(100, error);
           showToast(`❌ ${error}`, 'error');
+        }
+        if (progressSource) {
+          progressSource.close();
+          progressSource = null;
         }
       }
     );
@@ -176,6 +316,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   function ensureButton() {
     if (!isLinkedInJobPage()) return;
     ensureStyles();
+    ensureProgressPanel();
 
     const heading = findAboutJobHeading();
     if (!heading) return;

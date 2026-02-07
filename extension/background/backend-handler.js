@@ -3,11 +3,15 @@
  */
 async function handleGenerateResumeViaBackend(backendUrl, jobDescription, masterResume, downloadOptions = {}) {
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        if (downloadOptions.requestId) {
+            headers['X-Request-Id'] = downloadOptions.requestId;
+        }
         const response = await fetch(`${backendUrl}/api/generate-resume`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
                 jobDescription,
                 masterResume,

@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 8080;
 app.use(cors({
     origin: '*', // Allow Chrome extension to access
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    allowedHeaders: ['Content-Type', 'X-Request-Id'],
 }));
 app.use(express.json({ limit: '10mb' })); // Allow large resume content
 

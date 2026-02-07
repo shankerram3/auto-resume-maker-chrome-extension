@@ -13,7 +13,8 @@
     "*://*.linkedin.com/*",
     "https://latexonline.cc/*",
     "https://api.anthropic.com/*",
-    "http://localhost:*/*"
+    "http://localhost:*/*",
+    "https://resume-generator-backend-production-42f6.up.railway.app/*"
   ],
   "action": {
     "default_popup": "popup/popup.html"
