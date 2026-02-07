@@ -29,9 +29,7 @@ You must:
 \\usepackage{enumitem}
 \\usepackage{hyperref}
 \\usepackage{titlesec}
-\\usepackage{fontawesome5}
 \\usepackage{xcolor}
-\\usepackage{multicol}
 
 % Colors
 \\definecolor{linkblue}{RGB}{0,0,139}
@@ -43,7 +41,7 @@ You must:
     colorlinks=true,
     linkcolor=linkblue,
     urlcolor=linkblue,
-    pdftitle={Resume},
+    pdftitle={Resume}
 }
 
 % Remove page numbers

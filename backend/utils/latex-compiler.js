@@ -129,6 +129,11 @@ function postProcessLatex(latexSource) {
     // Fix \uppercase (needs braced argument) → \MakeUppercase (works as font command)
     preamble = preamble.replace(/\\uppercase(?!{)/g, '\\MakeUppercase');
 
+    // Strip fontawesome5 package and icons (ATS-incompatible, may not be installed)
+    preamble = preamble.replace(/\\usepackage\{fontawesome5?\}\n?/g, '');
+    // Also strip unused multicol package
+    preamble = preamble.replace(/\\usepackage\{multicol\}\n?/g, '');
+
     const escapedBody = escapeSpecialsInBody(body, stats);
     const balancedBody = balanceBracesInBody(escapedBody, stats);
 
