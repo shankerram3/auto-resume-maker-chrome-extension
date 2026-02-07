@@ -9,9 +9,14 @@
   const jobDescInput = document.getElementById('jobDescInput');
   const btnGenerate = document.getElementById('btnGenerate');
 
+  const progressBarEl = document.getElementById('progressBar');
+  const progressFillEl = progressBarEl?.querySelector('.progress-fill');
+  const progressTextEl = progressBarEl?.querySelector('.progress-text');
+
   let currentJobDescription = '';
   let userEdited = false;
   let persistTimer = null;
+  let progressSource = null;
 
   const POPUP_DRAFT_KEY = 'popupDraft';
   const LAST_JOB_KEY = 'lastJobDescription';
@@ -218,6 +223,40 @@
     fileInput.value = '';
   }
 
+  function showProgress(percent, message) {
+    if (progressBarEl) progressBarEl.classList.remove('hidden');
+    if (progressFillEl) progressFillEl.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    if (progressTextEl) progressTextEl.textContent = message || 'Working...';
+  }
+
+  function hideProgress() {
+    if (progressBarEl) progressBarEl.classList.add('hidden');
+    if (progressSource) {
+      progressSource.close();
+      progressSource = null;
+    }
+  }
+
+  function startProgressStream(backendUrl, requestId) {
+    const url = `${backendUrl.replace(/\/+$/, '')}/api/progress/${encodeURIComponent(requestId)}`;
+    const source = new EventSource(url);
+    source.addEventListener('progress', (evt) => {
+      try {
+        const data = JSON.parse(evt.data);
+        const eta = typeof data.etaSeconds === 'number' ? ` \u2022 ETA ~${data.etaSeconds}s` : '';
+        const msg = data.message ? `${data.message}${eta}` : 'Working...';
+        showProgress(data.percent ?? 0, msg);
+      } catch (_) {
+        showProgress(10, 'Working...');
+      }
+    });
+    source.onerror = () => {
+      // Don't hide — just show a waiting message
+      showProgress(10, 'Waiting for updates...');
+    };
+    return source;
+  }
+
   async function generateResume() {
     if (!currentJobDescription || currentJobDescription.trim().length < 50) {
       showStatus('Please provide a job description first.', 'error');
@@ -233,28 +272,46 @@
       return;
     }
 
+    // Generate a unique request ID for progress tracking
+    const requestId = (globalThis.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Get backend URL for progress stream
+    const { backendUrl } = await storageGet(['backendUrl']);
+
     showStatus('Generating resume with AI...', 'info');
+    showProgress(5, 'Starting...');
     btnGenerate.disabled = true;
+
+    // Start SSE progress stream if backend URL is configured
+    if (backendUrl) {
+      progressSource = startProgressStream(backendUrl, requestId);
+    }
 
     try {
       const result = await chrome.runtime.sendMessage({
         action: 'generateResume',
         jobDescription: currentJobDescription.trim(),
-        masterResume
+        masterResume,
+        requestId
       });
 
       if (result?.success) {
+        showProgress(100, 'Done!');
         showStatus('PDF download started!', 'success');
-      } else if (result?.downloadTex) {
-        chrome.runtime.sendMessage({ action: 'downloadTex', latex: result.latex }, () => {
-          showStatus('LaTeX compilation failed. Downloaded .tex file instead.', 'info');
-        });
+      } else if (result?.compilationFailed) {
+        showProgress(100, 'Compilation failed');
+        showStatus('LaTeX compilation failed. Downloaded .tex file for manual fixes.', 'info');
       } else {
+        showProgress(100, 'Error');
         showStatus(result?.error || 'Generation failed.', 'error');
       }
     } catch (e) {
+      showProgress(100, 'Error');
       showStatus(e?.message || 'Generation failed.', 'error');
     } finally {
+      hideProgress();
       btnGenerate.disabled = false;
       updateGenerateButton();
     }

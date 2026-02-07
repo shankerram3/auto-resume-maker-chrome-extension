@@ -149,3 +149,35 @@ h1 {
 .options-link:hover {
   text-decoration: underline;
 }
+
+/* Progress bar */
+.progress-bar {
+  background: #f3f6f8;
+  border: 1px solid #cfd9de;
+  border-radius: 6px;
+  padding: 10px 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar.hidden {
+  display: none;
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  background: rgba(5, 118, 66, 0.12);
+  transition: width 0.3s ease;
+  border-radius: 6px;
+}
+
+.progress-text {
+  position: relative;
+  font-size: 12px;
+  color: #333;
+  z-index: 1;
+}
