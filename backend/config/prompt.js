@@ -14,6 +14,7 @@ You must:
 - Keep the resume **exactly 2 pages**  
 - Maintain clean alignment and spacing  
 - Output **ONLY LaTeX code** (no explanations)
+- **Use the location specified in the job description if provided; otherwise, use the location from the master resume**
 
 ---
 
@@ -81,6 +82,11 @@ You must:
     \\href{github}{\\faGithub\\ GitHub} \\quad $|$ \\quad 
     \\textit{Open to Relocate}
 \\end{center}
+
+**IMPORTANT - Location Selection Rule:**
+- If the job description specifies a location requirement (e.g., "must reside in MA/NH/RI", "based in Boston, MA", "San Francisco, CA"), use that location in the header
+- If no specific location is mentioned in the job description, use the location from the master resume
+- Format consistently: "City, State" or "City, State Abbreviation"
 
 %----------SUMMARY----------
 \\section{Summary}
