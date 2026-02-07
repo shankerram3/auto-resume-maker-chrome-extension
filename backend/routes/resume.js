@@ -3,7 +3,13 @@ const fs = require('fs').promises;
 const path = require('path');
 const fetch = require('node-fetch');
 const { RESUME_SYSTEM_PROMPT } = require('../config/prompt');
-const { compileLatexToPDF, extractLatexFromResponse, getPdfPageCount } = require('../utils/latex-compiler');
+const {
+    compileLatexToPDF,
+    extractLatexFromResponse,
+    getPdfPageCount,
+    postProcessLatex,
+    addErrorNoteToLatex,
+} = require('../utils/latex-compiler');
 
 const router = express.Router();
 const progressClients = new Map();
@@ -265,20 +271,39 @@ router.post('/generate-resume', async (req, res) => {
             res.setHeader('Content-Disposition', 'attachment; filename="resume.pdf"');
             res.send(pdfBuffer);
         } catch (compilationError) {
-            // If compilation fails, return LaTeX source
+            // If compilation fails, save LaTeX and return .tex download with error note
             console.warn('⚠️  LaTeX compilation failed:', compilationError.message);
+            const failedLatex = compilationError.lastLatex || latex;
+            const noteLines = [
+                'AUTOMATIC ERROR NOTE (Resume Generator)',
+                `Timestamp: ${new Date().toISOString()}`,
+                `Compilation error: ${String(compilationError.message || 'Unknown error')}`.slice(0, 2000),
+            ];
+            if (compilationError.postProcessNotes?.length) {
+                noteLines.push(`Post-processing: ${compilationError.postProcessNotes.join(' ')}`);
+            }
+            const notedLatex = addErrorNoteToLatex(failedLatex, noteLines);
+
+            try {
+                const outputDir = path.join(__dirname, '..', 'output');
+                await fs.mkdir(outputDir, { recursive: true });
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const outputPath = path.join(outputDir, `resume-${timestamp}-failed.tex`);
+                await fs.writeFile(outputPath, notedLatex, 'utf8');
+                console.log('💾 Saved failed LaTeX to:', outputPath);
+            } catch (writeErr) {
+                console.warn('⚠️  Failed to save LaTeX file:', writeErr?.message || writeErr);
+            }
+
             sendProgress(requestId, {
                 stage: 'error',
                 percent: 100,
-                message: 'LaTeX compilation failed. Returning source code.',
+                message: 'LaTeX compilation failed. Returning .tex for manual fixes.',
             });
             closeProgress(requestId);
-            return res.status(200).json({
-                success: true,
-                latex,
-                compilationFailed: true,
-                error: 'LaTeX compilation failed. Returning source code.',
-            });
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            res.setHeader('Content-Disposition', 'attachment; filename="resume-error.tex"');
+            return res.status(200).send(notedLatex);
         }
     } catch (error) {
         console.error('❌ Error in /generate-resume:', error);
@@ -310,8 +335,20 @@ async function compileWithTwoPageGuard(initialLatex, apiKey, requestId) {
             message: `Compiling PDF (pass ${attempt}/${maxAttempts})...`,
             etaSeconds: estimateRemaining(['compile']),
         });
+        const post = postProcessLatex(latex);
+        latex = post.latex;
+        if (post.notes.length) {
+            console.log('🧹 Post-processed LaTeX:', post.notes.join(' '));
+        }
         const compileStart = Date.now();
-        const pdfBuffer = await compileLatexToPDF(latex);
+        let pdfBuffer;
+        try {
+            pdfBuffer = await compileLatexToPDF(latex);
+        } catch (err) {
+            err.lastLatex = latex;
+            err.postProcessNotes = post.notes;
+            throw err;
+        }
         updateAverage('compile', Math.round((Date.now() - compileStart) / 1000));
         const pageCount = await getPdfPageCount(pdfBuffer);
         console.log(`📄 PDF page count: ${pageCount}`);
@@ -321,7 +358,9 @@ async function compileWithTwoPageGuard(initialLatex, apiKey, requestId) {
         }
 
         if (attempt === maxAttempts) {
-            throw new Error(`PDF still exceeds 2 pages after ${maxAttempts} attempts.`);
+            const err = new Error(`PDF still exceeds 2 pages after ${maxAttempts} attempts.`);
+            err.lastLatex = latex;
+            throw err;
         }
 
         console.log('✂️  Compressing LaTeX to fit 2 pages without losing quality...');
@@ -332,7 +371,12 @@ async function compileWithTwoPageGuard(initialLatex, apiKey, requestId) {
             etaSeconds: estimateRemaining(['refine', 'compile']),
         });
         const refineStart = Date.now();
-        latex = await refineLatexToTwoPages(latex, apiKey);
+        try {
+            latex = await refineLatexToTwoPages(latex, apiKey);
+        } catch (err) {
+            err.lastLatex = latex;
+            throw err;
+        }
         updateAverage('refine', Math.round((Date.now() - refineStart) / 1000));
         sendProgress(requestId, {
             stage: 'refine_done',

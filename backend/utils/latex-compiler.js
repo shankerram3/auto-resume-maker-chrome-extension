@@ -10,6 +10,7 @@ const execFileAsync = promisify(execFile);
 
 const REMOTE_MAX_CHARS = 6000;
 const DEFAULT_ENGINE = 'pdflatex';
+const ERROR_NOTE_MARKER = '% === resume-generator error note ===';
 
 /**
  * Compile LaTeX source to PDF using latexonline.cc
@@ -92,6 +93,144 @@ async function compileLatexLocally(latexSource) {
     }
 }
 
+function postProcessLatex(latexSource) {
+    if (!latexSource || typeof latexSource !== 'string') {
+        return { latex: latexSource || '', notes: ['Empty LaTeX source'], stats: {} };
+    }
+
+    const beginTag = '\\begin{document}';
+    const endTag = '\\end{document}';
+    const beginIndex = latexSource.indexOf(beginTag);
+    const endIndex = latexSource.lastIndexOf(endTag);
+
+    if (beginIndex === -1 || endIndex === -1 || endIndex < beginIndex) {
+        return { latex: latexSource, notes: ['Document markers not found'], stats: {} };
+    }
+
+    const preamble = latexSource.slice(0, beginIndex + beginTag.length);
+    const body = latexSource.slice(beginIndex + beginTag.length, endIndex);
+    const tail = latexSource.slice(endIndex);
+
+    const stats = {
+        escapedSpecials: 0,
+        escapedRightBraces: 0,
+        addedRightBraces: 0,
+    };
+
+    const escapedBody = escapeSpecialsInBody(body, stats);
+    const balancedBody = balanceBracesInBody(escapedBody, stats);
+
+    const notes = [];
+    if (stats.escapedSpecials) notes.push(`Escaped ${stats.escapedSpecials} special characters.`);
+    if (stats.escapedRightBraces) notes.push(`Escaped ${stats.escapedRightBraces} stray right braces.`);
+    if (stats.addedRightBraces) notes.push(`Added ${stats.addedRightBraces} missing right braces.`);
+
+    return {
+        latex: preamble + balancedBody + tail,
+        notes,
+        stats,
+    };
+}
+
+function escapeSpecialsInBody(body, stats) {
+    let out = '';
+
+    for (let i = 0; i < body.length; i += 1) {
+        const ch = body[i];
+        const prev = i > 0 ? body[i - 1] : '';
+
+        if (ch === '%' && prev !== '\\') {
+            const window = body.slice(Math.max(0, i - 3), i);
+            if (/\d\s*$/.test(window)) {
+                out += '\\%';
+                stats.escapedSpecials += 1;
+            } else {
+                out += '%';
+            }
+            continue;
+        }
+
+        if ((ch === '#' || ch === '$' || ch === '_') && prev !== '\\') {
+            out += `\\${ch}`;
+            stats.escapedSpecials += 1;
+            continue;
+        }
+
+        out += ch;
+    }
+
+    return out;
+}
+
+function balanceBracesInBody(body, stats) {
+    let out = '';
+    let depth = 0;
+    let inComment = false;
+
+    for (let i = 0; i < body.length; i += 1) {
+        const ch = body[i];
+        const prev = i > 0 ? body[i - 1] : '';
+
+        if (inComment) {
+            out += ch;
+            if (ch === '\n') inComment = false;
+            continue;
+        }
+
+        if (ch === '%' && prev !== '\\') {
+            inComment = true;
+            out += ch;
+            continue;
+        }
+
+        if (ch === '{' && prev !== '\\') {
+            depth += 1;
+            out += ch;
+            continue;
+        }
+
+        if (ch === '}' && prev !== '\\') {
+            if (depth === 0) {
+                out += '\\}';
+                stats.escapedRightBraces += 1;
+            } else {
+                depth -= 1;
+                out += ch;
+            }
+            continue;
+        }
+
+        out += ch;
+    }
+
+    if (depth > 0) {
+        out += '}'.repeat(depth);
+        stats.addedRightBraces += depth;
+    }
+
+    return out;
+}
+
+function addErrorNoteToLatex(latexSource, noteLines) {
+    if (!latexSource || typeof latexSource !== 'string') return latexSource || '';
+    if (latexSource.includes(ERROR_NOTE_MARKER)) return latexSource;
+
+    const safeLines = Array.isArray(noteLines) ? noteLines : [String(noteLines || '')];
+    const flattened = safeLines
+        .flatMap((line) => String(line).split(/\r?\n/))
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+    const commentBlock = [
+        ERROR_NOTE_MARKER,
+        ...flattened.map((line) => `% ${line}`),
+        '% === end note ===',
+        '',
+    ].join('\n');
+
+    return commentBlock + latexSource;
+}
+
 /**
  * Extract LaTeX code from LLM response
  * @param {string} text - Response text from LLM
@@ -118,6 +257,8 @@ function extractLatexFromResponse(text) {
 
 module.exports = {
     compileLatexToPDF,
+    postProcessLatex,
+    addErrorNoteToLatex,
     extractLatexFromResponse,
     getPdfPageCount,
 };

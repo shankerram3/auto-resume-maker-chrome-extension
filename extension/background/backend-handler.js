@@ -59,6 +59,32 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
                 success: true,
                 downloadId,
             };
+        } else if (contentType && (contentType.includes('text/plain') || contentType.includes('application/x-tex') || contentType.includes('text/x-tex'))) {
+            const latexText = await response.text();
+            const base64 = btoa(unescape(encodeURIComponent(latexText)));
+            const url = `data:text/plain;charset=utf-8;base64,${base64}`;
+            const filenameBase = 'resume-error.tex';
+            const safeSubfolder = (downloadOptions.subfolder || '').replace(/^[\\/]+|[\\/]+$/g, '');
+            const filename = safeSubfolder ? `${safeSubfolder}/${filenameBase}` : filenameBase;
+            const saveAs = true;
+
+            const downloadId = await new Promise((resolve, reject) => {
+                chrome.downloads.download(
+                    {
+                        url,
+                        filename,
+                        saveAs,
+                    },
+                    (id) => (chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(id))
+                );
+            });
+
+            return {
+                success: false,
+                downloadId,
+                compilationFailed: true,
+                error: 'LaTeX compilation failed. Downloaded .tex file for manual fixes.',
+            };
         } else {
             // Backend returned JSON (likely LaTeX source due to compilation failure)
             const data = await response.json();
