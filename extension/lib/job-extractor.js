@@ -108,6 +108,11 @@
    */
   function extractFromDocument(doc) {
     if (!doc || !doc.querySelector) return null;
+    const about = doc.querySelector('div[data-sdui-component="com.linkedin.sdui.generated.jobseeker.dsl.impl.aboutTheJob"]');
+    if (about) {
+      const text = normalizeText(about.innerText || about.textContent || '');
+      if (text.length > 100) return text;
+    }
     const result = findByHeading(doc) || findByJobDetails(doc) || findByHeuristic(doc);
     return result && result.length > 100 ? result : null;
   }

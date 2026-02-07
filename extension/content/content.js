@@ -59,6 +59,25 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   width: 16px;
   height: 16px;
 }
+.resume-gen-float-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 99999;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: 600 14px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.resume-gen-float-btn:hover {
+  background: #0f172a;
+  transform: translateY(-1px);
+}
 #resume-gen-toast {
   position: fixed;
   top: 20px;
@@ -313,10 +332,21 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return null;
   }
 
+  function ensureFloatingButton() {
+    if (document.querySelector('.resume-gen-float-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'resume-gen-float-btn';
+    btn.title = 'Generate resume from this job';
+    btn.textContent = 'Generate Resume';
+    btn.addEventListener('click', handleGenerateResume);
+    document.body.appendChild(btn);
+  }
+
   function ensureButton() {
     if (!isLinkedInJobPage()) return;
     ensureStyles();
     ensureProgressPanel();
+    ensureFloatingButton();
 
     const heading = findAboutJobHeading();
     if (!heading) return;
@@ -340,6 +370,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
     // Insert button next to heading
     heading.appendChild(btn);
+
   }
 
   // Initial injection and observe SPA navigations/DOM changes.

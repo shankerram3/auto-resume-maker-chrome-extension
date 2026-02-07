@@ -53,12 +53,54 @@
         showStatus('Open a LinkedIn job page first, or use "Load from HTML File".', 'error');
         return;
       }
-      const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractJobDescription' });
+      let response;
+      try {
+        response = await chrome.tabs.sendMessage(tab.id, { action: 'extractJobDescription' });
+      } catch (err) {
+        response = null;
+      }
       if (response?.success && response.jobDescription) {
         setJobDescription(response.jobDescription);
         showStatus('Job description extracted.', 'success');
       } else {
-        showStatus('Could not find job description. Try "Load from HTML File" or paste manually.', 'error');
+        // Fallback: try direct DOM extraction via scripting
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            const normalize = (t) => (t || '').replace(/\s+/g, ' ').trim();
+            const about = document.querySelector(
+              'div[data-sdui-component="com.linkedin.sdui.generated.jobseeker.dsl.impl.aboutTheJob"]'
+            );
+            if (about) {
+              const text = normalize(about.innerText || about.textContent || '');
+              if (text.length > 100) return text;
+            }
+            const headings = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+            for (const h of headings) {
+              const txt = normalize(h.textContent || '').toLowerCase();
+              if (txt.includes('about the job') || txt.includes('about this job')) {
+                const parent = h.parentElement;
+                if (parent) {
+                  const t = normalize(parent.innerText || parent.textContent || '');
+                  if (t.length > 200) return t;
+                }
+                const next = h.nextElementSibling;
+                if (next) {
+                  const t = normalize(next.innerText || next.textContent || '');
+                  if (t.length > 100) return t;
+                }
+              }
+            }
+            return '';
+          }
+        });
+        const fallbackText = results?.[0]?.result || '';
+        if (fallbackText && fallbackText.length > 100) {
+          setJobDescription(fallbackText);
+          showStatus('Job description extracted.', 'success');
+        } else {
+          showStatus('Could not find job description. Try "Load from HTML File" or paste manually.', 'error');
+        }
       }
     } catch (e) {
       showStatus('Extraction failed. Load from file or paste manually.', 'error');
