@@ -261,7 +261,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     showToast('🔄 Extracting job description...', 'info');
 
     // Save to storage for popup to access
-    chrome.storage.local.set({ lastJobDescription: jobDescription });
+    chrome.storage.local.set({
+      lastJobDescription: jobDescription,
+      lastJobDescriptionUrl: location.href,
+      lastJobDescriptionAt: Date.now()
+    });
 
     // Get master resume
     const masterResume = await new Promise((resolve) => {

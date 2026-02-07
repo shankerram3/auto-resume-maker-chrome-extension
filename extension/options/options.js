@@ -25,7 +25,7 @@
         console.warn('pdfjsLib is not defined. PDF upload may not work.');
       } else {
         console.log('pdfjsLib loaded.');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../lib/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('lib/pdf.worker.min.js');
       }
 
       const result = await new Promise((resolve) => {
@@ -96,7 +96,7 @@
     }
 
     // Set worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '../lib/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('lib/pdf.worker.min.js');
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
