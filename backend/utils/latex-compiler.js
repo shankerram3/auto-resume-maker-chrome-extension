@@ -126,8 +126,20 @@ function postProcessLatex(latexSource) {
         stats.fixedTrailingCommas = (originalPreamble.match(/,\s*\}/g) || []).length;
     }
 
-    // Fix \uppercase (needs braced argument) → \MakeUppercase (works as font command)
-    preamble = preamble.replace(/\\uppercase(?!{)/g, '\\MakeUppercase');
+    // Fix \titleformat with \uppercase or \MakeUppercase in font arg (2nd arg).
+    // On TeX Live 2022+, these are incompatible with titlesec's internal expansion.
+    // Move the uppercase command to the before-code arg (5th arg) where titlesec expects it.
+    preamble = preamble.replace(
+        /\\titleformat\{\\section\}(.+)/g,
+        (match, rest) => {
+            if (/\\(?:uppercase|MakeUppercase)/.test(rest) && /\{\}\s*\[\\titlerule\]/.test(rest)) {
+                const cleaned = rest.replace(/\\(?:MakeUppercase|uppercase)/g, '');
+                const fixed = cleaned.replace(/\{\}(\s*\[\\titlerule\])/, '{\\MakeUppercase}$1');
+                return '\\titleformat{\\section}' + fixed;
+            }
+            return match;
+        }
+    );
 
     // Strip fontawesome5 package and icons (ATS-incompatible, may not be installed)
     preamble = preamble.replace(/\\usepackage\{fontawesome5?\}\n?/g, '');
