@@ -1,4 +1,16 @@
 /**
+ * Sanitize a job title into a safe filename slug.
+ */
+function slugifyJobTitle(title) {
+    if (!title || typeof title !== 'string') return '';
+    return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')  // non-alphanumeric → hyphens
+        .replace(/^-+|-+$/g, '')       // trim leading/trailing hyphens
+        .slice(0, 60);                 // cap length
+}
+
+/**
  * Handle resume generation via backend API
  */
 async function handleGenerateResumeViaBackend(backendUrl, jobDescription, masterResume, downloadOptions = {}) {
@@ -39,7 +51,8 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
                 reader.readAsDataURL(blob);
             });
 
-            const filenameBase = 'job-tailored-resume.pdf';
+            const slug = slugifyJobTitle(downloadOptions.jobTitle);
+            const filenameBase = slug ? `${slug}-resume.pdf` : 'job-tailored-resume.pdf';
             const safeSubfolder = (downloadOptions.subfolder || '').replace(/^[\\/]+|[\\/]+$/g, '');
             const filename = safeSubfolder ? `${safeSubfolder}/${filenameBase}` : filenameBase;
             const saveAs = downloadOptions.saveAs !== false;
@@ -63,7 +76,8 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
             const latexText = await response.text();
             const base64 = btoa(unescape(encodeURIComponent(latexText)));
             const url = `data:text/plain;charset=utf-8;base64,${base64}`;
-            const filenameBase = 'resume-error.tex';
+            const texSlug = slugifyJobTitle(downloadOptions.jobTitle);
+            const filenameBase = texSlug ? `${texSlug}-resume-error.tex` : 'resume-error.tex';
             const safeSubfolder = (downloadOptions.subfolder || '').replace(/^[\\/]+|[\\/]+$/g, '');
             const filename = safeSubfolder ? `${safeSubfolder}/${filenameBase}` : filenameBase;
             const saveAs = true;

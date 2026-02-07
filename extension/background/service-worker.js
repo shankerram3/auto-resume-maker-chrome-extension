@@ -99,7 +99,7 @@ async function getSettings() {
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === 'generateResume') {
-    handleGenerateResume(request.jobDescription, request.masterResume, request.requestId)
+    handleGenerateResume(request.jobDescription, request.masterResume, request.requestId, request.jobTitle)
       .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ success: false, error: String(err) }));
     return true;
@@ -117,7 +117,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 });
 
-async function handleGenerateResume(jobDescription, masterResume, requestId) {
+async function handleGenerateResume(jobDescription, masterResume, requestId, jobTitle) {
   const settings = await getSettings();
 
   // Backend URL is now required
@@ -135,7 +135,8 @@ async function handleGenerateResume(jobDescription, masterResume, requestId) {
     {
       saveAs: settings.downloadSaveAs,
       subfolder: settings.downloadSubfolder,
-      requestId
+      requestId,
+      jobTitle
     }
   );
 }

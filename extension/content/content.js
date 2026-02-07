@@ -300,6 +300,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     progressSource = startProgressStream(backendUrl, progressRequestId);
 
+    // Extract job title from page title (e.g. "Software Engineer | Company | LinkedIn")
+    const jobTitle = (document.title || '').split(/\s*[|\u2013\u2014]\s*/)[0].trim() || '';
+
     // Send to background script for processing
     chrome.runtime.sendMessage(
       {
@@ -307,6 +310,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         jobDescription,
         masterResume,
         requestId: progressRequestId,
+        jobTitle,
       },
       (response) => {
         if (response && response.success) {

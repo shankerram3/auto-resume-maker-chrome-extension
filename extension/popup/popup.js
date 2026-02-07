@@ -280,6 +280,15 @@
     // Get backend URL for progress stream
     const { backendUrl } = await storageGet(['backendUrl']);
 
+    // Extract job title from active tab title (e.g. "Software Engineer | Company | LinkedIn")
+    let jobTitle = '';
+    try {
+      const tab = await getActiveTabInfo();
+      if (tab?.title) {
+        jobTitle = (tab.title || '').split(/\s*[|\u2013\u2014]\s*/)[0].trim();
+      }
+    } catch (_) {}
+
     showStatus('Generating resume with AI...', 'info');
     showProgress(5, 'Starting...');
     btnGenerate.disabled = true;
@@ -294,7 +303,8 @@
         action: 'generateResume',
         jobDescription: currentJobDescription.trim(),
         masterResume,
-        requestId
+        requestId,
+        jobTitle
       });
 
       if (result?.success) {
