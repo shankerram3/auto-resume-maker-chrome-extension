@@ -30,8 +30,15 @@
       ],
       "js": [
         "lib/job-extractor.js",
+        "lib/master-resume.js",
         "content/content.js"
       ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/master-resume.txt"],
+      "matches": ["*://*.linkedin.com/*"]
     }
   ]
 }

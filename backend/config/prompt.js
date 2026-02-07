@@ -21,6 +21,27 @@ You must:
 
 ---
 
+## ⚠️ CRITICAL: 2-PAGE LENGTH BUDGET (READ FIRST)
+
+Your #1 constraint is fitting EXACTLY 2 pages. Plan content BEFORE writing:
+
+**Page budget estimates (total must be ≤ 2.0 pages):**
+- Header + Summary + Skills ≈ 0.25 pages
+- Each experience role ≈ 0.30 pages (with 3 bullets)
+- Each project ≈ 0.15 pages (with 2 bullets)
+- Education ≈ 0.10 pages
+- Awards ≈ 0.10 pages (optional)
+
+**Hard content limits — do NOT exceed:**
+- Experience: max 3–4 roles, max 3 bullets per role
+- Projects: max 2–3 projects, max 2 bullets each
+- Summary: max 2 lines
+- Skills: max 3 category lines
+
+**Default to LESS content.** It's easier to add spacing than to compress overflow. If the master resume has 5+ roles, pick only the 3 most relevant. When in doubt, remove a bullet rather than risk exceeding 2 pages.
+
+---
+
 ## MANDATORY LaTeX Template (USE THIS EXACT PREAMBLE)
 \\documentclass[10.5pt,letterpaper]{article}
 
