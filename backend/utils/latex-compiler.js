@@ -107,7 +107,7 @@ function postProcessLatex(latexSource) {
         return { latex: latexSource, notes: ['Document markers not found'], stats: {} };
     }
 
-    const preamble = latexSource.slice(0, beginIndex + beginTag.length);
+    let preamble = latexSource.slice(0, beginIndex + beginTag.length);
     const body = latexSource.slice(beginIndex + beginTag.length, endIndex);
     const tail = latexSource.slice(endIndex);
 
@@ -115,12 +115,25 @@ function postProcessLatex(latexSource) {
         escapedSpecials: 0,
         escapedRightBraces: 0,
         addedRightBraces: 0,
+        fixedTrailingCommas: 0,
     };
+
+    // Fix trailing commas before closing braces in hypersetup and similar blocks
+    // Pattern matches: comma, optional whitespace, then closing brace
+    const originalPreamble = preamble;
+    preamble = preamble.replace(/,(\s*)\}/g, '$1}');
+    if (preamble !== originalPreamble) {
+        stats.fixedTrailingCommas = (originalPreamble.match(/,\s*\}/g) || []).length;
+    }
+
+    // Fix \uppercase (needs braced argument) → \MakeUppercase (works as font command)
+    preamble = preamble.replace(/\\uppercase(?!{)/g, '\\MakeUppercase');
 
     const escapedBody = escapeSpecialsInBody(body, stats);
     const balancedBody = balanceBracesInBody(escapedBody, stats);
 
     const notes = [];
+    if (stats.fixedTrailingCommas) notes.push(`Fixed ${stats.fixedTrailingCommas} trailing comma(s) in preamble.`);
     if (stats.escapedSpecials) notes.push(`Escaped ${stats.escapedSpecials} special characters.`);
     if (stats.escapedRightBraces) notes.push(`Escaped ${stats.escapedRightBraces} stray right braces.`);
     if (stats.addedRightBraces) notes.push(`Added ${stats.addedRightBraces} missing right braces.`);
@@ -150,7 +163,8 @@ function escapeSpecialsInBody(body, stats) {
             continue;
         }
 
-        if ((ch === '#' || ch === '$' || ch === '_') && prev !== '\\') {
+        // Escape # and _ only - NOT $ since it's used for math mode (e.g. $|$ for pipe separators)
+        if ((ch === '#' || ch === '_') && prev !== '\\') {
             out += `\\${ch}`;
             stats.escapedSpecials += 1;
             continue;

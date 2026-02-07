@@ -50,7 +50,7 @@ You must:
 \\pagestyle{empty}
 
 % Section formatting
-\\titleformat{\\section}{\\large\\bfseries\\uppercase\\color{accentcolor}}{}{0em}{}[\\titlerule]
+\\titleformat{\\section}{\\large\\bfseries\\color{accentcolor}\\MakeUppercase}{}{0em}{}[\\titlerule]
 \\titlespacing*{\\section}{0pt}{10pt}{6pt}
 
 % Custom commands
