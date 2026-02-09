@@ -509,13 +509,24 @@ function collapseTitlesecCommand(latex, cmdName) {
  */
 function removeMarkdownArtifacts(latex) {
     let out = latex;
-    // Remove stray **bold** markdown
-    out = out.replace(/\*\*([^*]+)\*\*/g, '\\textbf{$1}');
-    // Remove stray *italic* markdown
-    out = out.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '\\textit{$1}');
-    // Remove stray `code` markdown
-    out = out.replace(/`([^`]+)`/g, '\\texttt{$1}');
-    return out;
+
+    // Only clean markdown in the document body to avoid breaking LaTeX commands in the preamble
+    const beginDocIdx = out.indexOf('\\begin{document}');
+    if (beginDocIdx === -1) return out;
+
+    const head = out.slice(0, beginDocIdx);
+    let body = out.slice(beginDocIdx);
+
+    // Remove stray **bold** markdown (single-line, not part of LaTeX command names)
+    body = body.replace(/(^|[^\\\w])\*\*([^*\n]+)\*\*/g, '$1\\textbf{$2}');
+
+    // Remove stray *italic* markdown (single-line, not part of LaTeX command names)
+    body = body.replace(/(^|[^\\\w])\*([^*\n]+)\*/g, '$1\\textit{$2}');
+
+    // Remove stray `code` markdown (single-line)
+    body = body.replace(/`([^`\n]+)`/g, '\\texttt{$1}');
+
+    return head + body;
 }
 
 /**
@@ -699,6 +710,13 @@ function extractLatexFromResponse(text) {
 
     // Validate it looks like LaTeX
     if (latex.includes('\\documentclass') && latex.includes('\\end{document}')) {
+        // Strip any leading commentary before \documentclass and trailing text after \end{document}
+        const docStart = latex.indexOf('\\documentclass');
+        const endDocMarker = '\\end{document}';
+        const docEnd = latex.lastIndexOf(endDocMarker) + endDocMarker.length;
+        if (docStart > 0 || docEnd < latex.length) {
+            latex = latex.substring(docStart, docEnd);
+        }
         return latex;
     }
 

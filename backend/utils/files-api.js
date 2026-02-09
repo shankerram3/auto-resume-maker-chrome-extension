@@ -8,21 +8,27 @@ const ANTHROPIC_API_BASE = 'https://api.anthropic.com/v1';
 // In-memory map: resumeHash → { fileId, createdAt }
 const fileIdCache = new Map();
 
-/**
- * Get a stable hash for a master resume to use as cache key.
- */
-function getResumeHash(masterResume) {
-    return crypto.createHash('sha256').update(masterResume.trim()).digest('hex');
-}
+// In-memory map: promptHash → { fileId, createdAt }
+const systemPromptCache = new Map();
 
 /**
- * Upload a plain-text master resume to Anthropic Files API.
+ * Get a stable hash for content to use as cache key.
+ */
+function getContentHash(content) {
+    return crypto.createHash('sha256').update(content.trim()).digest('hex');
+}
+
+// Keep backward-compatible alias
+const getResumeHash = getContentHash;
+
+/**
+ * Upload a plain-text file to Anthropic Files API.
  * Returns the file_id.
  */
-async function uploadResumeFile(masterResume, apiKey) {
+async function uploadTextFile(content, filename, apiKey) {
     const form = new FormData();
-    form.append('file', Buffer.from(masterResume, 'utf-8'), {
-        filename: 'master-resume.txt',
+    form.append('file', Buffer.from(content, 'utf-8'), {
+        filename,
         contentType: 'text/plain',
     });
 
@@ -43,8 +49,16 @@ async function uploadResumeFile(masterResume, apiKey) {
     }
 
     const data = await response.json();
-    console.log(`📁 Uploaded master resume to Files API: ${data.id} (${data.size_bytes} bytes)`);
+    console.log(`📁 Uploaded ${filename} to Files API: ${data.id} (${data.size_bytes} bytes)`);
     return data.id;
+}
+
+/**
+ * Upload a plain-text master resume to Anthropic Files API.
+ * Returns the file_id.
+ */
+async function uploadResumeFile(masterResume, apiKey) {
+    return uploadTextFile(masterResume, 'master-resume.txt', apiKey);
 }
 
 /**
@@ -52,7 +66,7 @@ async function uploadResumeFile(masterResume, apiKey) {
  * Caches file_ids in memory so the same resume is only uploaded once.
  */
 async function getOrUploadResumeFile(masterResume, apiKey) {
-    const hash = getResumeHash(masterResume);
+    const hash = getContentHash(masterResume);
     const cached = fileIdCache.get(hash);
 
     if (cached) {
@@ -66,23 +80,60 @@ async function getOrUploadResumeFile(masterResume, apiKey) {
 }
 
 /**
- * Build the user message content array using file_id for the master resume.
- * Falls back to inline text if Files API is disabled or fails.
+ * Get or create a file_id for the system prompt.
+ * Caches file_id in memory so the prompt is only uploaded once.
  */
-async function buildUserContent(jobDescription, masterResume, apiKey) {
+async function getOrUploadSystemPromptFile(promptContent, apiKey) {
+    const hash = getContentHash(promptContent);
+    const cached = systemPromptCache.get(hash);
+
+    if (cached) {
+        console.log(`📁 Using cached file_id for system prompt: ${cached.fileId}`);
+        return cached.fileId;
+    }
+
+    const fileId = await uploadTextFile(promptContent, 'system-prompt.txt', apiKey);
+    systemPromptCache.set(hash, { fileId, createdAt: Date.now() });
+    return fileId;
+}
+
+/**
+ * Build the user message content array.
+ * When Files API is enabled, uploads both system prompt and master resume as files
+ * and references them as document blocks in the user content.
+ * Falls back to inline text if Files API is disabled or fails.
+ *
+ * Returns { content, usedFilesApi, systemPromptInUserMessage }
+ */
+async function buildUserContent(jobDescription, masterResume, apiKey, systemPrompt) {
     const useFilesApi = (process.env.USE_FILES_API || 'true').toLowerCase() === 'true';
 
-    if (!useFilesApi) {
+    if (!useFilesApi || !systemPrompt) {
         return {
-            content: `### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME:\n${masterResume}`,
+            content: systemPrompt
+                ? `### INSTRUCTIONS:\n${systemPrompt}\n\n### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME:\n${masterResume}`
+                : `### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME:\n${masterResume}`,
             usedFilesApi: false,
+            systemPromptInUserMessage: !!systemPrompt,
         };
     }
 
     try {
-        const fileId = await getOrUploadResumeFile(masterResume, apiKey);
+        const [promptFileId, resumeFileId] = await Promise.all([
+            getOrUploadSystemPromptFile(systemPrompt, apiKey),
+            getOrUploadResumeFile(masterResume, apiKey),
+        ]);
+
         return {
             content: [
+                {
+                    type: 'document',
+                    source: {
+                        type: 'file',
+                        file_id: promptFileId,
+                    },
+                    title: 'Resume Generation Instructions',
+                },
                 {
                     type: 'text',
                     text: `### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME (see attached document):`,
@@ -91,18 +142,20 @@ async function buildUserContent(jobDescription, masterResume, apiKey) {
                     type: 'document',
                     source: {
                         type: 'file',
-                        file_id: fileId,
+                        file_id: resumeFileId,
                     },
                     title: 'Master Resume',
                 },
             ],
             usedFilesApi: true,
+            systemPromptInUserMessage: true,
         };
     } catch (err) {
         console.warn('⚠️  Files API failed, falling back to inline text:', err.message);
         return {
-            content: `### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME:\n${masterResume}`,
+            content: `### INSTRUCTIONS:\n${systemPrompt}\n\n### JOB DESCRIPTION:\n${jobDescription}\n\n### MASTER RESUME:\n${masterResume}`,
             usedFilesApi: false,
+            systemPromptInUserMessage: true,
         };
     }
 }
@@ -110,5 +163,6 @@ async function buildUserContent(jobDescription, masterResume, apiKey) {
 module.exports = {
     buildUserContent,
     getOrUploadResumeFile,
+    getOrUploadSystemPromptFile,
     FILES_API_BETA,
 };

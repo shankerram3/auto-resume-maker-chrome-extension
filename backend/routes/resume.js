@@ -315,9 +315,9 @@ router.post('/generate-resume', async (req, res) => {
             etaSeconds: estimateRemaining(['llm', 'compile']),
         });
 
-        const { content: userContent, usedFilesApi } = await buildUserContent(jobDescription, masterResume, apiKey);
+        const { content: userContent, usedFilesApi, systemPromptInUserMessage } = await buildUserContent(jobDescription, masterResume, apiKey, RESUME_SYSTEM_PROMPT);
         if (usedFilesApi) {
-            console.log('📁 Using Files API for master resume');
+            console.log('📁 Using Files API for master resume and system prompt');
         }
 
         const requestStart = Date.now();
@@ -341,23 +341,33 @@ router.post('/generate-resume', async (req, res) => {
 
         let llmResponse;
         try {
+            // When Files API is used, the system prompt is included as a document
+            // in the user message, so we omit the system parameter.
+            // When falling back to inline, keep the system parameter with prompt caching.
+            const requestBody = {
+                model: generationModel,
+                messages: [
+                    { role: 'user', content: userContent },
+                ],
+                max_tokens: 4096,
+                // Always include a system message. When the full prompt is in
+                // the user message via Files API, use a lightweight reinforcement.
+                // Otherwise use the full inline prompt with ephemeral caching.
+                system: [
+                    {
+                        type: 'text',
+                        text: systemPromptInUserMessage
+                            ? 'You are a LaTeX resume generator. Follow the instructions in the attached document exactly. Output ONLY valid LaTeX code — no markdown, no commentary, no explanations, no XML tags. Start with \\documentclass and end with \\end{document}.'
+                            : RESUME_SYSTEM_PROMPT,
+                        cache_control: { type: 'ephemeral' },
+                    },
+                ],
+            };
+
             llmResponse = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
                 headers: requestHeaders,
-                body: JSON.stringify({
-                    model: generationModel,
-                    system: [
-                        {
-                            type: 'text',
-                            text: RESUME_SYSTEM_PROMPT,
-                            cache_control: { type: 'ephemeral' },
-                        },
-                    ],
-                    messages: [
-                        { role: 'user', content: userContent },
-                    ],
-                    max_tokens: 4096,
-                }),
+                body: JSON.stringify(requestBody),
                 signal: controller.signal,
             });
             const elapsed = Math.round((Date.now() - requestStart) / 1000);
@@ -474,6 +484,7 @@ router.post('/generate-resume', async (req, res) => {
                 `┃ PDF size:          ${String((pdfBuffer.length / 1024).toFixed(1) + ' KB').padStart(21)} ┃`,
                 `┃ Model:             ${String(generationModel.replace('claude-', '')).padStart(21)} ┃`,
                 `┃ Files API:         ${String(usedFilesApi ? 'Yes' : 'No').padStart(21)} ┃`,
+                `┃ Prompt via file:   ${String(systemPromptInUserMessage && usedFilesApi ? 'Yes' : 'No (inline)').padStart(21)} ┃`,
                 `┃ Prompt cached:     ${String(genCost.cacheReadTokens > 0 ? 'Yes ✓' : 'No (cold)').padStart(21)} ┃`,
                 `┃ Refinement needed: ${String(refineCost ? 'Yes' : 'No').padStart(21)} ┃`,
                 `┃ Gen input tokens:  ${String(genCost.totalInputTokens.toLocaleString()).padStart(21)} ┃`,

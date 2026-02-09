@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix LaTeX \\\\uppercase causing \"Missing { inserted\" compile error\n\nReplace \\\\uppercase with \\\\MakeUppercase in the \\\\titleformat template\n\\(prompt.js\\) and add a defensive preamble fix in the post-processor\n\\(latex-compiler.js\\) to catch LLM-generated instances.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(node -e:*)",
+      "Bash(git commit:*)",
+      "Bash(node:*)",
+      "mcp__Control_Chrome__execute_javascript",
+      "Bash(python3:*)",
+      "Bash(Company)",
+      "Bash(LinkedIn\"\\) and use it to build the download filename\n\\(e.g. \"software-engineer-company-resume.pdf\"\\).\n\n- content.js: extract from document.title, pass in message\n- popup.js: extract from active tab title, pass in message\n- service-worker.js: forward jobTitle to backend handler\n- backend-handler.js: slugify title into safe filename, apply to\n  both PDF and .tex error downloads\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(git stash:*)",
+      "Bash(git stash pop:*)",
+      "WebFetch(domain:texdoc.org)",
+      "WebFetch(domain:www.overleaf.com)",
+      "Bash(tree:*)"
+    ]
+  }
+}
