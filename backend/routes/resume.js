@@ -159,7 +159,7 @@ router.post('/generate-resume', async (req, res) => {
         console.log('✅ API key found');
 
         const apiUrl = process.env.LLM_API_URL || 'https://api.cerebras.ai/v1/chat/completions';
-        const model = process.env.LLM_MODEL || 'llama-3.3-70b';
+        const model = process.env.LLM_MODEL || 'qwen-3-235b-a22b-instruct-2507';
 
         console.log(`🤖 Calling LLM (model: ${model})...`);
         sendProgress(requestId, {
