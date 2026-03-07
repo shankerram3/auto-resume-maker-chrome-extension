@@ -26,11 +26,11 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
             };
         }
 
-        // Check if response is PDF or JSON
-        const contentType = response.headers.get('Content-Type');
+        const contentType = response.headers.get('Content-Type') || '';
+        const isDocx = contentType.includes('wordprocessingml') || contentType.includes('application/octet-stream');
+        const isPdf = contentType.includes('application/pdf');
 
-        if (contentType && contentType.includes('application/pdf')) {
-            // Backend returned PDF directly
+        if (isDocx || isPdf) {
             const blob = await response.blob();
             const reader = new FileReader();
             const dataUrl = await new Promise((resolve, reject) => {
@@ -39,7 +39,8 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
                 reader.readAsDataURL(blob);
             });
 
-            const filenameBase = 'job-tailored-resume.pdf';
+            const ext = isDocx ? 'docx' : 'pdf';
+            const filenameBase = `job-tailored-resume.${ext}`;
             const safeSubfolder = (downloadOptions.subfolder || '').replace(/^[\\/]+|[\\/]+$/g, '');
             const filename = safeSubfolder ? `${safeSubfolder}/${filenameBase}` : filenameBase;
             const saveAs = downloadOptions.saveAs !== false;
@@ -60,7 +61,7 @@ async function handleGenerateResumeViaBackend(backendUrl, jobDescription, master
                 downloadId,
             };
         } else {
-            // Backend returned JSON (likely LaTeX source due to compilation failure)
+            // Backend returned JSON (error or fallback)
             const data = await response.json();
             return data;
         }
