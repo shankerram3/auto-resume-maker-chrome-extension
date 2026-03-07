@@ -1,7 +1,6 @@
 (function () {
   'use strict';
 
-  const backendUrlEl = document.getElementById('backendUrl');
   const downloadSaveAsEl = document.getElementById('downloadSaveAs');
   const downloadSubfolderEl = document.getElementById('downloadSubfolder');
   const masterResumeEl = document.getElementById('masterResume');
@@ -10,7 +9,6 @@
   const saveStatusEl = document.getElementById('saveStatus');
 
   const resumeUpload = document.getElementById('resumeUpload');
-  const DEFAULT_BACKEND_URL = 'https://resume-generator-backend-production-42f6.up.railway.app';
 
   function showSaveStatus(text) {
     saveStatusEl.textContent = text;
@@ -29,16 +27,11 @@
       }
 
       const result = await new Promise((resolve) => {
-        chrome.storage.local.get(['backendUrl', 'downloadSaveAs', 'downloadSubfolder'], (r) => {
+        chrome.storage.local.get(['downloadSaveAs', 'downloadSubfolder'], (r) => {
           if (chrome.runtime.lastError) console.error(chrome.runtime.lastError);
           resolve(r);
         });
       });
-      const backendUrl = result.backendUrl || DEFAULT_BACKEND_URL;
-      backendUrlEl.value = backendUrl;
-      if (!result.backendUrl) {
-        chrome.storage.local.set({ backendUrl });
-      }
       downloadSaveAsEl.checked = result.downloadSaveAs !== false;
       downloadSubfolderEl.value = result.downloadSubfolder || '';
 
@@ -58,12 +51,11 @@
   }
 
   async function save() {
-    const backendUrl = backendUrlEl.value.trim();
     const downloadSaveAs = !!downloadSaveAsEl.checked;
     const downloadSubfolder = (downloadSubfolderEl.value || '').trim();
     const masterResume = masterResumeEl.value.trim();
 
-    chrome.storage.local.set({ backendUrl, downloadSaveAs, downloadSubfolder }, () => {
+    chrome.storage.local.set({ downloadSaveAs, downloadSubfolder }, () => {
       if (chrome.runtime.lastError) {
         showSaveStatus('Error saving settings.');
         return;

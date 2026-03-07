@@ -85,11 +85,12 @@ function extractLatexFromResponse(text) {
   return null;
 }
 
+const BACKEND_URL = 'https://resume-generator-backend-production-42f6.up.railway.app';
+
 async function getSettings() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['backendUrl', 'downloadSaveAs', 'downloadSubfolder'], (result) => {
+    chrome.storage.local.get(['downloadSaveAs', 'downloadSubfolder'], (result) => {
       resolve({
-        backendUrl: result.backendUrl || '',
         downloadSaveAs: result.downloadSaveAs !== false,
         downloadSubfolder: result.downloadSubfolder || ''
       });
@@ -120,16 +121,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 async function handleGenerateResume(jobDescription, masterResume, requestId) {
   const settings = await getSettings();
 
-  // Backend URL is now required
-  if (!settings.backendUrl) {
-    return {
-      success: false,
-      error: 'Backend URL not configured. Please set backend URL in Options.'
-    };
-  }
-
   return await handleGenerateResumeViaBackend(
-    settings.backendUrl,
+    BACKEND_URL,
     jobDescription,
     masterResume,
     {

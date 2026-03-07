@@ -298,12 +298,10 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (meta) meta.textContent = message || 'Working...';
   }
 
-  async function getBackendUrl() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['backendUrl'], (result) => {
-        resolve(result.backendUrl || '');
-      });
-    });
+  const BACKEND_URL = 'https://resume-generator-backend-production-42f6.up.railway.app';
+
+  function getBackendUrl() {
+    return BACKEND_URL;
   }
 
   function startProgressStream(backendUrl, requestId) {
@@ -364,11 +362,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return;
     }
 
-    const backendUrl = await getBackendUrl();
-    if (!backendUrl) {
-      showToast('❌ Backend URL not configured. Set it in Options.', 'error');
-      return;
-    }
+    const backendUrl = getBackendUrl();
 
     showToast('🤖 Generating resume...', 'info');
     ensureProgressPanel();
