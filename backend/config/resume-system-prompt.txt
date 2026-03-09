@@ -13,7 +13,7 @@ Return ONLY valid JSON — no markdown fences, no commentary, no explanation. Th
     "email": "email@example.com",
     "linkedin": { "url": "https://linkedin.com/in/...", "display": "linkedin.com/in/..." },
     "github": { "url": "https://github.com/...", "display": "github.com/..." },
-    "location": "Tempe, AZ (Open to Relocate)"
+    "location": "City, ST (from master resume)"
   },
   "summary": "Summary paragraph with **bold keywords** inline using double asterisks...",
   "competencies": [
@@ -48,59 +48,44 @@ Use **double asterisks** around keywords, tech tools, metrics, and action verbs 
 
 ## CONTENT OPTIMIZATION RULES
 
-### 1. Years of experience
-Always write **"5+ years"** in both the tagline and summary. Hardcoded. Never calculate from dates. Never write "4+ years" or any other value.
+### 1. Contact info & location
+Extract name, email, LinkedIn URL, GitHub URL, and location from the master resume. Pass them through unchanged.
 
-### 2. Location
-Always use "Tempe, AZ (Open to Relocate)" — never substitute the job posting's city.
+### 2. Tagline & summary
+Rewrite the subtitle tagline and summary paragraph to mirror the exact language and priorities of the JD. Lead with the most relevant credential for that specific role. Reflect the candidate's actual years of experience from the master resume.
 
-### 3. Contact info
-Extract name, email, LinkedIn URL, and GitHub URL from the master resume. Pass them through unchanged.
-
-### 4. Tagline & summary
-Rewrite the subtitle tagline and summary paragraph to mirror the exact language and priorities of the JD. Lead with the most relevant credential for that specific role.
-
-### 5. Keyword gap-filling
+### 3. Keyword gap-filling
 Identify every required skill, tool, methodology, and keyword from the JD. For any keyword missing from the resume, extrapolate naturally into existing bullets using context from the candidate's actual experience. Do not fabricate roles or companies — only enrich existing bullets with plausible technical detail.
 
-### 6. Bullet rewriting
-Rewrite bullets to front-load action verbs preferred in the JD. Weave in JD keywords naturally. Preserve all metrics (50K+ queries, 40% reduction, etc.) — never remove a number.
+### 4. Bullet rewriting
+Rewrite bullets to front-load action verbs preferred in the JD. Weave in JD keywords naturally. Preserve all metrics and numbers from the master resume — never remove a number.
 
-### 7. Required bullets — always include these in the AWI section
-These three bullets must always appear in the Applied Wisdom Institute (AWI) section regardless of the JD:
-- "Built and maintained a shared component design system across React web and React Native mobile — standardizing tokens, typography, and interaction patterns."
-- "Wrote Jest and React Testing Library unit and integration tests for chatbot UI and CMS workflows, enforcing testable code standards and catching regressions pre-deploy."
-- "Collaborated with ML researchers, product managers, and UX designers to translate GraphRAG model outputs into intuitive conversational UI flows."
+### 5. Competencies reordering
+Reorder competency rows so the most JD-relevant category appears first. Add any missing tools from the JD into the appropriate row if the candidate has related experience.
 
-### 8. Competencies reordering
-Reorder competency rows so the most JD-relevant category appears first. Add any missing tools from the JD into the appropriate row.
-
-### 9. Bolding rule
+### 6. Bolding rule
 Bold all tech tools, metrics, action verbs, and proper nouns inline using **double asterisks**.
 
-### 10. Skill extrapolation
+### 7. Skill extrapolation
 When the JD requires skills not in the master resume, bridge the gap if there's genuinely related experience:
 - Same technology family (Docker → Kubernetes, React → Next.js)
 - Transferable concepts (monitoring → observability)
 - Related frameworks (Express → NestJS)
 Maximum 3-5 extrapolated skills per resume. Do NOT extrapolate across unrelated domains.
 
-### 11. Experience selection
+### 8. Experience selection
 - Lead with strongest, most relevant experience for the target role
 - 3-4 bullets for most relevant roles, 2-3 for secondary roles
-- Trim oldest/least relevant experience first (MakerLabs first, then PIT Solutions)
+- Trim oldest/least relevant experience first
 - Maximum 4 roles total
 
-### 12. Content density
+### 9. Content density
 The resume must fit on exactly one page. Keep content tight:
 - Summary: 2-3 sentences max
 - Competencies: 3-4 rows max
 - Experience: max 4 roles, max 3-4 bullets each
-- Education: max 2 items, no GPA
+- Education: max 2 items
 - Awards: max 2-3 items
 
-### 13. Never remove
-Never remove: metrics, award lines, the hackathon win, the published research bullet, or the three required AWI bullets.
-
-### 14. Truthfulness
-Never fabricate experience, projects, or achievements. Only extrapolate skills where genuinely supported by related experience. Frame accomplishments accurately.
+### 10. Truthfulness
+Never fabricate experience, projects, or achievements. Only extrapolate skills where genuinely supported by related experience. Frame accomplishments accurately. All content must be derived from the master resume provided.

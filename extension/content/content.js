@@ -3,19 +3,23 @@
  * Listens for messages from the popup to extract the job description from the DOM.
  */
 
-chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request.action === 'extractJobDescription') {
-    try {
-      const text = typeof JobExtractor !== 'undefined'
-        ? JobExtractor.extractFromDOM(document)
-        : null;
-      sendResponse({ success: !!text, jobDescription: text });
-    } catch (e) {
-      sendResponse({ success: false, error: String(e) });
+try {
+  chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    if (request.action === 'extractJobDescription') {
+      try {
+        const text = typeof JobExtractor !== 'undefined'
+          ? JobExtractor.extractFromDOM(document)
+          : null;
+        sendResponse({ success: !!text, jobDescription: text });
+      } catch (e) {
+        sendResponse({ success: false, error: String(e) });
+      }
     }
-  }
-  return true;
-});
+    return true;
+  });
+} catch (_) {
+  // Extension context invalidated — page needs refresh
+}
 
 // Inject an inline "Generate Resume" button next to the "About the Job" heading on LinkedIn job pages.
 (function injectResumeButton() {
@@ -338,33 +342,58 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return null;
   }
 
+  function isExtensionContextValid() {
+    try {
+      return !!chrome.runtime?.id;
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function handleGenerateResume() {
-    const jobDescription = extractAboutJob();
-    if (!jobDescription) {
-      showToast('❌ Could not extract job description', 'error');
+    if (!isExtensionContextValid()) {
+      showToast('Extension was updated. Please refresh the page.', 'error');
       return;
     }
 
-    showToast('🔄 Extracting job description...', 'info');
+    const jobDescription = extractAboutJob();
+    if (!jobDescription) {
+      showToast('Could not extract job description', 'error');
+      return;
+    }
 
-    // Save to storage for popup to access
-    chrome.storage.local.set({ lastJobDescription: jobDescription });
+    showToast('Extracting job description...', 'info');
+
+    try {
+      // Save to storage for popup to access
+      chrome.storage.local.set({ lastJobDescription: jobDescription });
+    } catch (_) {
+      showToast('Extension was updated. Please refresh the page.', 'error');
+      return;
+    }
 
     // Get master resume
-    const masterResume = await new Promise((resolve) => {
-      chrome.storage.local.get(['masterResume'], (result) => {
-        resolve(result.masterResume || '');
+    let masterResume = '';
+    try {
+      masterResume = await new Promise((resolve, reject) => {
+        chrome.storage.local.get(['masterResume'], (result) => {
+          if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
+          resolve(result.masterResume || '');
+        });
       });
-    });
+    } catch (_) {
+      showToast('Extension was updated. Please refresh the page.', 'error');
+      return;
+    }
 
     if (!masterResume || masterResume.trim().length < 100) {
-      showToast('❌ Master resume not configured. Please set it in Options.', 'error');
+      showToast('Master resume not configured. Please set it in Options.', 'error');
       return;
     }
 
     const backendUrl = getBackendUrl();
 
-    showToast('🤖 Generating resume...', 'info');
+    showToast('Generating resume...', 'info');
     ensureProgressPanel();
     showProgressPanel();
     updateProgressPanel(5, 'Starting...');
@@ -380,28 +409,39 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     progressSource = startProgressStream(backendUrl, progressRequestId);
 
     // Send to background script for processing
-    chrome.runtime.sendMessage(
-      {
-        action: 'generateResume',
-        jobDescription,
-        masterResume,
-        requestId: progressRequestId,
-      },
-      (response) => {
-        if (response && response.success) {
-          updateProgressPanel(100, 'Download started.');
-          showToast('✅ Resume generated successfully!', 'success');
-        } else {
-          const error = response?.error || 'Unknown error';
-          updateProgressPanel(100, error);
-          showToast(`❌ ${error}`, 'error');
+    try {
+      chrome.runtime.sendMessage(
+        {
+          action: 'generateResume',
+          jobDescription,
+          masterResume,
+          requestId: progressRequestId,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            updateProgressPanel(100, 'Extension was updated. Please refresh the page.');
+            showToast('Extension was updated. Please refresh the page.', 'error');
+          } else if (response && (response.success || response.received)) {
+            updateProgressPanel(100, 'Download started.');
+            showToast('Resume generated successfully!', 'success');
+          } else {
+            const error = response?.error || 'Unknown error';
+            updateProgressPanel(100, error);
+            showToast(error, 'error');
+          }
+          if (progressSource) {
+            progressSource.close();
+            progressSource = null;
+          }
         }
-        if (progressSource) {
-          progressSource.close();
-          progressSource = null;
-        }
+      );
+    } catch (_) {
+      showToast('Extension was updated. Please refresh the page.', 'error');
+      if (progressSource) {
+        progressSource.close();
+        progressSource = null;
       }
-    );
+    }
   }
 
   function findAboutJobHeading() {

@@ -36,8 +36,7 @@
       downloadSubfolderEl.value = result.downloadSubfolder || '';
 
       const masterResume = await (typeof MasterResume !== 'undefined' ? MasterResume.getStoredResume() : null);
-      const defaultResume = await (typeof MasterResume !== 'undefined' ? MasterResume.fetchDefaultResume() : '');
-      masterResumeEl.value = masterResume ?? defaultResume ?? '';
+      masterResumeEl.value = masterResume ?? '';
     } catch (error) {
       console.error('Error in load():', error);
       showSaveStatus('Error loading: ' + error.message);
@@ -110,6 +109,8 @@
 
     showSaveStatus('Reading file...');
 
+    const isDocx = file.name.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
     if (file.type === 'application/pdf') {
       extractTextFromPdf(file).then((text) => {
         masterResumeEl.value = text;
@@ -117,6 +118,22 @@
       }).catch((err) => {
         console.error(err);
         showSaveStatus('Error reading PDF.');
+      });
+    } else if (isDocx) {
+      file.arrayBuffer().then((arrayBuffer) => {
+        if (typeof mammoth === 'undefined') {
+          showSaveStatus('DOCX library not loaded.');
+          return;
+        }
+        return mammoth.extractRawText({ arrayBuffer });
+      }).then((result) => {
+        if (result) {
+          masterResumeEl.value = result.value;
+          showSaveStatus('DOCX loaded. Please review formatting.');
+        }
+      }).catch((err) => {
+        console.error(err);
+        showSaveStatus('Error reading DOCX.');
       });
     } else {
       // Assume text/latex
